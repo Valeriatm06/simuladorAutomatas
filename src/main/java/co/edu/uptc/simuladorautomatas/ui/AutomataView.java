@@ -78,6 +78,8 @@ public class AutomataView {
     private ComboBox<TipoAutomata> tipoCombo;
     private TextField alfabetoField;
     private TextArea palabrasArea;
+    private ListView<EvaluacionCadenaResultado> resultadosLoteList;
+    private Button btnVerPasoLote;
     private VBox panelConfiguracion;
     private VBox panelPruebas;
     
@@ -102,6 +104,7 @@ public class AutomataView {
     private PauseTransition pausaSimulacion;
     private boolean reproduccionAutomaticaActiva;
     private Boolean ultimoResultadoAceptado;
+    private List<EvaluacionCadenaResultado> resultadosUltimoLote = new ArrayList<>();
 
     public AutomataView(Stage stage) {
         this.stage = stage;
@@ -315,17 +318,16 @@ public class AutomataView {
         palabrasArea = new TextArea();
         palabrasArea.setPromptText("Ingrese una palabra por línea\\nEj:\\naba\\nabb\\nbaab");
         palabrasArea.setWrapText(true);
-        palabrasArea.setPrefRowCount(10);
-        VBox.setVgrow(palabrasArea, Priority.ALWAYS);
+        palabrasArea.setPrefRowCount(8);
 
         Button btnEvaluarTodas = new Button("Evaluar Todas");
         btnEvaluarTodas.getStyleClass().add("btn-primary");
-        btnEvaluarTodas.setPrefWidth(Double.MAX_VALUE);
+        btnEvaluarTodas.setMaxWidth(Double.MAX_VALUE);
         btnEvaluarTodas.setOnAction(e -> evaluarPalabras());
 
         Button btnLimpiar = new Button("Limpiar");
         btnLimpiar.getStyleClass().add("btn-action");
-        btnLimpiar.setPrefWidth(Double.MAX_VALUE);
+        btnLimpiar.setMaxWidth(Double.MAX_VALUE);
         btnLimpiar.setOnAction(e -> palabrasArea.clear());
 
         HBox botonesPruebas = new HBox(8, btnEvaluarTodas, btnLimpiar);
@@ -333,7 +335,53 @@ public class AutomataView {
         HBox.setHgrow(btnEvaluarTodas, Priority.ALWAYS);
         HBox.setHgrow(btnLimpiar, Priority.ALWAYS);
 
-        panelPruebas.getChildren().addAll(tituloPruebas, palabrasArea, botonesPruebas);
+        Label resultadosLabel = new Label("Resultados del lote (seleccione una cadena):");
+        resultadosLabel.getStyleClass().add("field-label");
+
+        resultadosLoteList = new ListView<>();
+        resultadosLoteList.getStyleClass().add("result-list");
+        resultadosLoteList.setPrefHeight(170);
+        resultadosLoteList.setPlaceholder(new Label("Evalúe hasta 10 cadenas para ver resultados"));
+        resultadosLoteList.setCellFactory(lv -> new javafx.scene.control.ListCell<>() {
+            @Override
+            protected void updateItem(EvaluacionCadenaResultado item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    return;
+                }
+                String valorCadena = item.getCadena().isEmpty() ? "ε" : item.getCadena();
+                setText((getIndex() + 1) + ". " + valorCadena + " -> " + item.getEstadoTexto());
+            }
+        });
+
+        btnVerPasoLote = new Button("Ver paso a paso");
+        btnVerPasoLote.getStyleClass().add("btn-secondary");
+        btnVerPasoLote.setMaxWidth(Double.MAX_VALUE);
+        btnVerPasoLote.setDisable(true);
+        btnVerPasoLote.setOnAction(e -> reproducirCadenaSeleccionadaLote());
+
+        resultadosLoteList.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            btnVerPasoLote.setDisable(newVal == null);
+        });
+
+        resultadosLoteList.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                reproducirCadenaSeleccionadaLote();
+            }
+        });
+
+        VBox.setVgrow(resultadosLoteList, Priority.ALWAYS);
+
+        panelPruebas.getChildren().addAll(
+                tituloPruebas,
+                palabrasArea,
+                botonesPruebas,
+                new Separator(Orientation.HORIZONTAL),
+                resultadosLabel,
+                resultadosLoteList,
+                btnVerPasoLote
+        );
 
         stackPane.getChildren().addAll(panelConfiguracion, panelPruebas);
         return stackPane;
@@ -366,6 +414,7 @@ public class AutomataView {
             // Cambiar al panel de pruebas
             mostrarPanelPruebas();
             palabrasArea.clear();
+            limpiarResultadosLote();
             
             // Marcar paso 1 como completado
             marcarPasoCompleto(1);
@@ -381,34 +430,54 @@ public class AutomataView {
             mostrarError("Ingrese palabras para evaluar");
             return;
         }
-        
-        String[] palabras = contenido.split("\n");
-        StringBuilder resultados = new StringBuilder();
-        
-        for (String palabra : palabras) {
-            palabra = palabra.trim();
-            if (!palabra.isEmpty()) {
-                try {
-                    EvaluacionCadenaResultado resultado = controller.evaluarConTraza(palabra);
-                    resultados.append(palabra).append(" -> ").append(resultado.getEstadoTexto()).append("\n");
-                } catch (Exception ex) {
-                    resultados.append(palabra).append(" -> ERROR: ").append(ex.getMessage()).append("\n");
-                }
+
+        try {
+            controller.validarAutomata();
+            List<String> entradas = Arrays.stream(contenido.split("\\n"))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
+            List<EvaluacionCadenaResultado> resultados = controller.evaluarLoteConTraza(entradas);
+            resultadosUltimoLote = new ArrayList<>(resultados);
+            resultadosLoteList.getItems().setAll(resultadosUltimoLote);
+
+            if (!resultadosUltimoLote.isEmpty()) {
+                resultadosLoteList.getSelectionModel().select(0);
             }
+
+            long aceptadas = resultados.stream().filter(EvaluacionCadenaResultado::isAceptada).count();
+            estadoProcesoLabel.getStyleClass().removeAll("status-ok", "status-error");
+            estadoProcesoLabel.getStyleClass().add("status-ok");
+            estadoProcesoLabel.setText("Evaluadas " + resultados.size() + " cadenas. " + aceptadas
+                    + " aceptadas y " + (resultados.size() - aceptadas)
+                    + " rechazadas. Seleccione una para ver el paso a paso.");
+        } catch (Exception ex) {
+            mostrarError(ex.getMessage());
+            return;
         }
-        
-        // Mostrar resultados en un diálogo
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Resultados de Evaluación");
-        alert.setHeaderText("Evaluación de Palabras");
-        alert.setContentText(resultados.toString());
-        alert.showAndWait();
         
         // Marcar paso 4 como completado cuando se evalúan palabras
         if (!paso4Completado) {
             marcarPasoCompleto(4);
             paso4Completado = true;
         }
+    }
+
+    private void reproducirCadenaSeleccionadaLote() {
+        EvaluacionCadenaResultado seleccionado = resultadosLoteList == null
+                ? null
+                : resultadosLoteList.getSelectionModel().getSelectedItem();
+        if (seleccionado == null) {
+            mostrarError("Seleccione una cadena evaluada para ver su paso a paso");
+            return;
+        }
+
+        iniciarSimulacionVisual(seleccionado);
+        String valorCadena = seleccionado.getCadena().isEmpty() ? "ε" : seleccionado.getCadena();
+        estadoProcesoLabel.getStyleClass().removeAll("status-ok", "status-error");
+        estadoProcesoLabel.getStyleClass().add(seleccionado.isAceptada() ? "status-ok" : "status-error");
+        estadoProcesoLabel.setText("Cadena seleccionada: " + valorCadena + " -> "
+                + seleccionado.getEstadoTexto() + ". Use 'Siguiente paso' o 'Reproducir'.");
     }
 
     private Pane crearPanelVisual() {
@@ -919,6 +988,7 @@ public class AutomataView {
             modoCrearEstado = false;
             estadoSeleccionadoCanvas = null;
             detenerSimulacionVisual();
+            limpiarResultadosLote();
             mostrarPanelPruebas();
             redibujar();
             mostrarInfoEstado("Automata cargado: " + file.getName());
@@ -1278,6 +1348,7 @@ public class AutomataView {
         ultimoResultadoAceptado = null;
         alfabetoField.clear();
         palabrasArea.clear();
+        limpiarResultadosLote();
         tipoCombo.setValue(TipoAutomata.DFA);
         controller.reiniciarAutomata();
         if (btnSiguientePaso != null) {
@@ -1304,6 +1375,16 @@ public class AutomataView {
         panelConfiguracion.setManaged(false);
         panelPruebas.setVisible(true);
         panelPruebas.setManaged(true);
+    }
+
+    private void limpiarResultadosLote() {
+        resultadosUltimoLote.clear();
+        if (resultadosLoteList != null) {
+            resultadosLoteList.getItems().clear();
+        }
+        if (btnVerPasoLote != null) {
+            btnVerPasoLote.setDisable(true);
+        }
     }
 
     private void reiniciarStepperVisual() {

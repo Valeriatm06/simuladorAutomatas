@@ -67,6 +67,11 @@ public class AutomataController {
         return evaluator.evaluarLote(automataActual, entradas);
     }
 
+    public List<EvaluacionCadenaResultado> evaluarLoteConTraza(List<String> cadenas) {
+        List<String> entradas = cadenas.stream().map(String::trim).filter(s -> !s.isEmpty()).toList();
+        return evaluator.evaluarLote(automataActual, entradas, true);
+    }
+
     public EvaluacionCadenaResultado evaluarConTraza(String cadena) {
         return evaluator.evaluar(automataActual, cadena, true);
     }

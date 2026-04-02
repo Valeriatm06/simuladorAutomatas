@@ -29,12 +29,16 @@ public class AutomataEvaluator {
     }
 
     public List<EvaluacionCadenaResultado> evaluarLote(Automata automata, List<String> cadenas) {
+        return evaluarLote(automata, cadenas, false);
+    }
+
+    public List<EvaluacionCadenaResultado> evaluarLote(Automata automata, List<String> cadenas, boolean incluirTraza) {
         if (cadenas.size() > 10) {
             throw new IllegalArgumentException("Solo se permiten hasta 10 cadenas por lote");
         }
         List<EvaluacionCadenaResultado> resultados = new ArrayList<>();
         for (String cadena : cadenas) {
-            resultados.add(evaluar(automata, cadena, false));
+            resultados.add(evaluar(automata, cadena, incluirTraza));
         }
         return resultados;
     }

@@ -12,4 +12,5 @@ co\edu\uptc\simuladorautomatas\logic\PasoEvaluacion.class
 co\edu\uptc\simuladorautomatas\persistence\AutomataJsonRepository.class
 co\edu\uptc\simuladorautomatas\persistence\AutomataJsonRepository$TransicionDto.class
 co\edu\uptc\simuladorautomatas\model\Transicion.class
+co\edu\uptc\simuladorautomatas\ui\AutomataView$1.class
 co\edu\uptc\simuladorautomatas\logic\EvaluacionCadenaResultado.class
