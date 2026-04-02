@@ -2,11 +2,13 @@ package co.edu.uptc.simuladorautomatas.ui;
 
 import co.edu.uptc.simuladorautomatas.controller.AutomataController;
 import co.edu.uptc.simuladorautomatas.logic.EvaluacionCadenaResultado;
+import co.edu.uptc.simuladorautomatas.logic.PasoEvaluacion;
 import co.edu.uptc.simuladorautomatas.model.Automata;
 import co.edu.uptc.simuladorautomatas.model.Estado;
 import co.edu.uptc.simuladorautomatas.model.TipoAutomata;
 import co.edu.uptc.simuladorautomatas.model.Transicion;
 import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
 import javafx.animation.ScaleTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -53,8 +55,10 @@ import javafx.util.Duration;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class AutomataView {
@@ -68,6 +72,8 @@ public class AutomataView {
 
     private Pane panelDibujo;
     private Label estadoProcesoLabel;
+    private Button btnSiguientePaso;
+    private Button btnReproducir;
 
     private ComboBox<TipoAutomata> tipoCombo;
     private TextField alfabetoField;
@@ -89,6 +95,13 @@ public class AutomataView {
     private int modoActual; // 0=normal, 1=crear estado, 2=crear transicion, 3=seleccionar
     private String estadoEnCreacion; // Nombre del estado siendo creado
     private final List<double[]> zonasEtiquetasTransicion = new ArrayList<>();
+    private final Set<String> estadosResaltadosEvaluacion = new LinkedHashSet<>();
+    private final Set<String> estadosFinalesEvaluacion = new LinkedHashSet<>();
+    private EvaluacionCadenaResultado simulacionActual;
+    private int indicePasoActual = -1;
+    private PauseTransition pausaSimulacion;
+    private boolean reproduccionAutomaticaActiva;
+    private Boolean ultimoResultadoAceptado;
 
     public AutomataView(Stage stage) {
         this.stage = stage;
@@ -346,6 +359,7 @@ public class AutomataView {
             
             controller.nuevoAutomata(tipoCombo.getValue(), alfabeto);
             System.out.println("DEBUG: Autómata creado con tipo " + tipoCombo.getValue() + " y alfabeto " + alfabeto);
+            detenerSimulacionVisual();
             redibujar();
             mostrarInfoEstado("Autómata " + tipoCombo.getValue() + " creado. Agregue estados con el toolbar.");
             
@@ -450,9 +464,19 @@ public class AutomataView {
         evaluarBtn.getStyleClass().add("btn-primary");
         evaluarBtn.setPrefWidth(100);
         evaluarBtn.setStyle("-fx-font-size: 12px; -fx-padding: 8 16;");
-        evaluarBtn.setOnAction(e -> evaluarCadenaUnica(cadenaInputField.getText(), contenedor));
+        evaluarBtn.setOnAction(e -> evaluarCadenaUnica(cadenaInputField.getText()));
 
-        panelEntrada.getChildren().addAll(cadenaInputField, evaluarBtn);
+        btnSiguientePaso = new Button("Siguiente paso");
+        btnSiguientePaso.getStyleClass().add("btn-secondary");
+        btnSiguientePaso.setDisable(true);
+        btnSiguientePaso.setOnAction(e -> avanzarSimulacionManual());
+
+        btnReproducir = new Button("Reproducir");
+        btnReproducir.getStyleClass().add("btn-secondary");
+        btnReproducir.setDisable(true);
+        btnReproducir.setOnAction(e -> reproducirDesdeInicio());
+
+        panelEntrada.getChildren().addAll(cadenaInputField, evaluarBtn, btnSiguientePaso, btnReproducir);
 
         // Panel de resultados
         VBox panelResultados = new VBox(8);
@@ -484,7 +508,7 @@ public class AutomataView {
         return contenedor;
     }
 
-    private void evaluarCadenaUnica(String cadena, VBox contenedor) {
+    private void evaluarCadenaUnica(String cadena) {
         cadena = cadena.trim();
         if (cadena.isEmpty()) {
             mostrarError("Ingrese una cadena para evaluar");
@@ -507,12 +531,151 @@ public class AutomataView {
             } else {
                 estadoProcesoLabel.getStyleClass().add("status-error");
             }
-            
+
+            iniciarSimulacionVisual(resultado);
+
         } catch (Exception ex) {
+            detenerSimulacionVisual();
             estadoProcesoLabel.setText("Error: " + ex.getMessage());
             estadoProcesoLabel.getStyleClass().removeAll("status-ok");
             estadoProcesoLabel.getStyleClass().add("status-error");
         }
+    }
+
+    private void iniciarSimulacionVisual(EvaluacionCadenaResultado resultado) {
+        detenerSimulacionVisual();
+        simulacionActual = resultado;
+        indicePasoActual = -1;
+        reproduccionAutomaticaActiva = false;
+        ultimoResultadoAceptado = null;
+
+        estadosResaltadosEvaluacion.clear();
+        estadosFinalesEvaluacion.clear();
+        estadosResaltadosEvaluacion.addAll(resultado.getEstadosIniciales());
+        redibujar();
+
+        boolean tienePasos = !resultado.getPasos().isEmpty();
+        if (btnSiguientePaso != null) {
+            btnSiguientePaso.setDisable(!tienePasos);
+        }
+        if (btnReproducir != null) {
+            btnReproducir.setDisable(!tienePasos);
+        }
+        if (!tienePasos) {
+            aplicarResultadoFinalVisual(null);
+        }
+    }
+
+    private void reproducirDesdeInicio() {
+        if (simulacionActual == null) {
+            return;
+        }
+        detenerPausaSimulacion();
+        reproduccionAutomaticaActiva = true;
+        indicePasoActual = -1;
+        estadosResaltadosEvaluacion.clear();
+        estadosFinalesEvaluacion.clear();
+        ultimoResultadoAceptado = null;
+        estadosResaltadosEvaluacion.addAll(simulacionActual.getEstadosIniciales());
+        redibujar();
+        if (!simulacionActual.getPasos().isEmpty()) {
+            programarSiguientePaso();
+        }
+    }
+
+    private void avanzarSimulacionManual() {
+        if (simulacionActual == null) {
+            return;
+        }
+        detenerPausaSimulacion();
+        reproduccionAutomaticaActiva = false;
+        avanzarPasoVisual();
+    }
+
+    private void programarSiguientePaso() {
+        if (!reproduccionAutomaticaActiva || simulacionActual == null) {
+            return;
+        }
+        detenerPausaSimulacion();
+        pausaSimulacion = new PauseTransition(Duration.millis(800));
+        pausaSimulacion.setOnFinished(event -> {
+            avanzarPasoVisual();
+            if (reproduccionAutomaticaActiva
+                    && simulacionActual != null
+                    && indicePasoActual < simulacionActual.getPasos().size() - 1) {
+                programarSiguientePaso();
+            }
+        });
+        pausaSimulacion.play();
+    }
+
+    private void detenerPausaSimulacion() {
+        if (pausaSimulacion != null) {
+            pausaSimulacion.stop();
+            pausaSimulacion = null;
+        }
+    }
+
+    private void avanzarPasoVisual() {
+        if (simulacionActual == null) {
+            return;
+        }
+        if (indicePasoActual >= simulacionActual.getPasos().size() - 1) {
+            reproduccionAutomaticaActiva = false;
+            if (btnSiguientePaso != null) {
+                btnSiguientePaso.setDisable(true);
+            }
+            return;
+        }
+
+        indicePasoActual++;
+        PasoEvaluacion paso = simulacionActual.getPasos().get(indicePasoActual);
+
+        estadosResaltadosEvaluacion.clear();
+        estadosResaltadosEvaluacion.addAll(paso.getEstadosDestino());
+        redibujar();
+
+        if (indicePasoActual >= simulacionActual.getPasos().size() - 1 && btnSiguientePaso != null) {
+            reproduccionAutomaticaActiva = false;
+            aplicarResultadoFinalVisual(paso);
+            btnSiguientePaso.setDisable(true);
+        }
+    }
+
+    private void aplicarResultadoFinalVisual(PasoEvaluacion ultimoPaso) {
+        if (simulacionActual == null) {
+            return;
+        }
+        ultimoResultadoAceptado = simulacionActual.isAceptada();
+        estadosFinalesEvaluacion.clear();
+
+        if (ultimoPaso != null && !ultimoPaso.getEstadosDestino().isEmpty()) {
+            estadosFinalesEvaluacion.addAll(ultimoPaso.getEstadosDestino());
+        } else if (ultimoPaso != null && !ultimoPaso.getEstadosOrigen().isEmpty()) {
+            estadosFinalesEvaluacion.addAll(ultimoPaso.getEstadosOrigen());
+        } else {
+            estadosFinalesEvaluacion.addAll(simulacionActual.getEstadosIniciales());
+        }
+
+        estadosResaltadosEvaluacion.clear();
+        redibujar();
+    }
+
+    private void detenerSimulacionVisual() {
+        detenerPausaSimulacion();
+        reproduccionAutomaticaActiva = false;
+        simulacionActual = null;
+        indicePasoActual = -1;
+        estadosResaltadosEvaluacion.clear();
+        estadosFinalesEvaluacion.clear();
+        ultimoResultadoAceptado = null;
+        if (btnSiguientePaso != null) {
+            btnSiguientePaso.setDisable(true);
+        }
+        if (btnReproducir != null) {
+            btnReproducir.setDisable(true);
+        }
+        redibujar();
     }
 
     private void activarModoCreacionEstado() {
@@ -755,6 +918,7 @@ public class AutomataView {
             alfabetoField.setText(String.join(",", automata.getAlfabeto()));
             modoCrearEstado = false;
             estadoSeleccionadoCanvas = null;
+            detenerSimulacionVisual();
             mostrarPanelPruebas();
             redibujar();
             mostrarInfoEstado("Automata cargado: " + file.getName());
@@ -810,6 +974,8 @@ public class AutomataView {
 
     private void dibujarEstado(Estado estado) {
         boolean seleccionado = estado.getNombre().equals(estadoSeleccionadoCanvas);
+        boolean resaltadoEvaluacion = estadosResaltadosEvaluacion.contains(estado.getNombre());
+        boolean estadoFinal = estadosFinalesEvaluacion.contains(estado.getNombre());
         double x = logicoAVistaX(estado.getX());
         double y = logicoAVistaY(estado.getY());
         double radio = radioEscalado();
@@ -829,12 +995,30 @@ public class AutomataView {
             panelDibujo.getChildren().add(brillo);
         }
 
-        Circle principal = new Circle(x, y, radio, Color.web("#F8FAFC"));
+        if (resaltadoEvaluacion) {
+            Circle haloEvaluacion = new Circle(x, y, radio + 9, Color.TRANSPARENT);
+            haloEvaluacion.setStroke(Color.web("#F59E0B"));
+            haloEvaluacion.setStrokeWidth(2.4);
+            panelDibujo.getChildren().add(haloEvaluacion);
+        }
+
+        if (estadoFinal && ultimoResultadoAceptado != null) {
+            Circle haloFinal = new Circle(x, y, radio + 10, Color.TRANSPARENT);
+            haloFinal.setStroke(ultimoResultadoAceptado ? Color.web("#16A34A") : Color.web("#DC2626"));
+            haloFinal.setStrokeWidth(2.8);
+            panelDibujo.getChildren().add(haloFinal);
+        }
+
+        Color colorBase = resaltadoEvaluacion ? Color.web("#FEF3C7") : Color.web("#F8FAFC");
+        if (estadoFinal && ultimoResultadoAceptado != null) {
+            colorBase = ultimoResultadoAceptado ? Color.web("#DCFCE7") : Color.web("#FEE2E2");
+        }
+        Circle principal = new Circle(x, y, radio, colorBase);
         principal.setStroke(seleccionado ? Color.web("#2563EB") : Color.web("#1F2937"));
         principal.setStrokeWidth(seleccionado ? 3.0 : 1.7);
 
-        if (estado.isEsInicial()) {
-            principal.setFill(Color.web("#E0F2FE"));
+        if (estado.isEsInicial() && !estadoFinal) {
+            principal.setFill(resaltadoEvaluacion ? Color.web("#FDE68A") : Color.web("#E0F2FE"));
         }
 
         panelDibujo.getChildren().add(principal);
@@ -1086,10 +1270,22 @@ public class AutomataView {
         nuevoEstadoAceptacion = false;
         estadoSeleccionadoCanvas = null;
         estadoEnCreacion = null;
+        detenerPausaSimulacion();
+        simulacionActual = null;
+        indicePasoActual = -1;
+        estadosResaltadosEvaluacion.clear();
+        estadosFinalesEvaluacion.clear();
+        ultimoResultadoAceptado = null;
         alfabetoField.clear();
         palabrasArea.clear();
         tipoCombo.setValue(TipoAutomata.DFA);
         controller.reiniciarAutomata();
+        if (btnSiguientePaso != null) {
+            btnSiguientePaso.setDisable(true);
+        }
+        if (btnReproducir != null) {
+            btnReproducir.setDisable(true);
+        }
         mostrarPanelConfiguracion();
         reiniciarStepperVisual();
         redibujar();

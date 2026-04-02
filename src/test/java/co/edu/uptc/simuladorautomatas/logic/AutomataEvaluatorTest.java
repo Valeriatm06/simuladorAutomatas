@@ -23,7 +23,10 @@ class AutomataEvaluatorTest {
         Path archivo = Path.of("src", "main", "resources", "test-data", "dfa_binario_par_0.json");
         Automata automata = repository.cargar(archivo);
 
-        assertTrue(evaluator.evaluar(automata, "11", false).isAceptada());
+        EvaluacionCadenaResultado aceptada = evaluator.evaluar(automata, "11", true);
+        assertTrue(aceptada.isAceptada());
+        assertEquals(2, aceptada.getPasos().size());
+        assertEquals("q0", aceptada.getEstadosIniciales().get(0));
         assertTrue(!evaluator.evaluar(automata, "10", false).isAceptada());
     }
 
@@ -43,6 +46,8 @@ class AutomataEvaluatorTest {
         EvaluacionCadenaResultado resultado = evaluator.evaluar(nfa, "aab", true);
         assertTrue(resultado.isAceptada());
         assertTrue(resultado.getTraza().contains("(q0, a)"));
+        assertEquals(3, resultado.getPasos().size());
+        assertTrue(resultado.getPasos().get(0).getEstadosDestino().contains("q1"));
     }
 
     @Test

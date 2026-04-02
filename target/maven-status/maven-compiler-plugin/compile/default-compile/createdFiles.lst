@@ -8,6 +8,7 @@ co\edu\uptc\simuladorautomatas\logic\AutomataValidator.class
 co\edu\uptc\simuladorautomatas\persistence\AutomataJsonRepository$EstadoDto.class
 co\edu\uptc\simuladorautomatas\model\Automata.class
 co\edu\uptc\simuladorautomatas\ui\AutomataView.class
+co\edu\uptc\simuladorautomatas\logic\PasoEvaluacion.class
 co\edu\uptc\simuladorautomatas\persistence\AutomataJsonRepository.class
 co\edu\uptc\simuladorautomatas\persistence\AutomataJsonRepository$TransicionDto.class
 co\edu\uptc\simuladorautomatas\model\Transicion.class
