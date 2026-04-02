@@ -1,0 +1,46 @@
+{
+  "tipo": "DFA",
+  "alfabeto": [
+    "0",
+    "1"
+  ],
+  "estados": [
+    {
+      "nombre": "q0",
+      "esInicial": true,
+      "esAceptacion": true,
+      "x": 220.0,
+      "y": 180.0
+    },
+    {
+      "nombre": "q1",
+      "esInicial": false,
+      "esAceptacion": false,
+      "x": 420.0,
+      "y": 180.0
+    }
+  ],
+  "transiciones": [
+    {
+      "origen": "q0",
+      "simbolo": "0",
+      "destino": "q1"
+    },
+    {
+      "origen": "q0",
+      "simbolo": "1",
+      "destino": "q0"
+    },
+    {
+      "origen": "q1",
+      "simbolo": "0",
+      "destino": "q0"
+    },
+    {
+      "origen": "q1",
+      "simbolo": "1",
+      "destino": "q1"
+    }
+  ]
+}
+
