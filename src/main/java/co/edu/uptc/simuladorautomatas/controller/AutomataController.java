@@ -36,6 +36,11 @@ public class AutomataController {
         this.automataActual.setAlfabeto(alfabeto);
     }
 
+    public void reiniciarAutomata() {
+        this.automataActual = new Automata(TipoAutomata.DFA);
+        this.automataActual.setAlfabeto(List.of());
+    }
+
     public void agregarEstado(String nombre, boolean inicial, boolean aceptacion, double x, double y) {
         Estado estado = new Estado(nombre, inicial, aceptacion, x, y);
         automataActual.agregarEstado(estado);

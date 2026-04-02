@@ -291,6 +291,7 @@ public class AutomataView {
         panelPruebas.setMinWidth(250);
         panelPruebas.setMaxWidth(350);
         panelPruebas.setVisible(false);
+        panelPruebas.setManaged(false);
 
         Label tituloPruebas = new Label("Palabras de Prueba");
         tituloPruebas.getStyleClass().add("section-title");
@@ -346,8 +347,7 @@ public class AutomataView {
             mostrarInfoEstado("Autómata " + tipoCombo.getValue() + " creado. Agregue estados con el toolbar.");
             
             // Cambiar al panel de pruebas
-            panelConfiguracion.setVisible(false);
-            panelPruebas.setVisible(true);
+            mostrarPanelPruebas();
             palabrasArea.clear();
             
             // Marcar paso 1 como completado
@@ -752,6 +752,7 @@ public class AutomataView {
             alfabetoField.setText(String.join(",", automata.getAlfabeto()));
             modoCrearEstado = false;
             estadoSeleccionadoCanvas = null;
+            mostrarPanelPruebas();
             redibujar();
             mostrarInfoEstado("Automata cargado: " + file.getName());
         } catch (Exception ex) {
@@ -1000,14 +1001,60 @@ public class AutomataView {
 
     private void limpiarVistaYAutomata() {
         modoCrearEstado = false;
+        modoActual = 0;
         nuevoEstadoInicial = false;
         nuevoEstadoAceptacion = false;
         estadoSeleccionadoCanvas = null;
-        alfabetoField.clear();
         estadoEnCreacion = null;
-        controller.nuevoAutomata(tipoCombo.getValue(), List.of());
+        alfabetoField.clear();
+        palabrasArea.clear();
+        tipoCombo.setValue(TipoAutomata.DFA);
+        controller.reiniciarAutomata();
+        mostrarPanelConfiguracion();
+        reiniciarStepperVisual();
         redibujar();
         mostrarInfoEstado("Lienzo limpio. Defina un nuevo automata");
+    }
+
+    private void mostrarPanelConfiguracion() {
+        panelConfiguracion.setVisible(true);
+        panelConfiguracion.setManaged(true);
+        panelPruebas.setVisible(false);
+        panelPruebas.setManaged(false);
+    }
+
+    private void mostrarPanelPruebas() {
+        panelConfiguracion.setVisible(false);
+        panelConfiguracion.setManaged(false);
+        panelPruebas.setVisible(true);
+        panelPruebas.setManaged(true);
+    }
+
+    private void reiniciarStepperVisual() {
+        pasoActual = 1;
+        paso2Completado = false;
+        paso3Completado = false;
+        paso4Completado = false;
+        if (stepBoxes == null) {
+            return;
+        }
+        for (int i = 0; i < stepBoxes.length; i++) {
+            VBox stepBox = stepBoxes[i];
+            stepBox.getStyleClass().removeAll("completed", "active");
+            if (stepBox.getChildren().size() >= 2
+                    && stepBox.getChildren().get(0) instanceof Label
+                    && stepBox.getChildren().get(1) instanceof Label) {
+                Label num = (Label) stepBox.getChildren().get(0);
+                Label texto = (Label) stepBox.getChildren().get(1);
+                num.getStyleClass().removeAll("active", "completed-number");
+                texto.getStyleClass().remove("active");
+                if (i == 0) {
+                    stepBox.getStyleClass().add("active");
+                    num.getStyleClass().add("active");
+                    texto.getStyleClass().add("active");
+                }
+            }
+        }
     }
 
     private void mostrarInfoEstado(String mensaje) {
