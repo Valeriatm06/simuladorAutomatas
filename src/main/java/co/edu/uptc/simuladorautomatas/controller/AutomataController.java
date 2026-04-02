@@ -84,6 +84,11 @@ public class AutomataController {
         return nombres;
     }
 
+    public void eliminarEstado(String nombreEstado) {
+        Estado estado = buscarEstado(nombreEstado);
+        automataActual.eliminarEstado(estado);
+    }
+
     private Estado buscarEstado(String nombre) {
         return automataActual.buscarEstadoPorNombre(nombre)
                 .orElseThrow(() -> new IllegalArgumentException("Estado no encontrado: " + nombre));

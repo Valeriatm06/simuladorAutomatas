@@ -84,6 +84,20 @@ public class Automata {
         transiciones.add(transicion);
     }
 
+    public void eliminarEstado(Estado estado) {
+        if (!estados.contains(estado)) {
+            throw new IllegalArgumentException("El estado no pertenece al automata");
+        }
+        
+        // Eliminar todas las transiciones que involucren este estado
+        transiciones.removeIf(t -> 
+            t.getEstadoOrigen().equals(estado) || t.getEstadoDestino().equals(estado)
+        );
+        
+        // Eliminar el estado
+        estados.remove(estado);
+    }
+
     public void limpiar() {
         estados.clear();
         alfabeto.clear();
