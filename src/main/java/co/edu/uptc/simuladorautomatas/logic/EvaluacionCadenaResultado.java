@@ -53,4 +53,3 @@ public class EvaluacionCadenaResultado {
         return aceptada ? "ACEPTADA" : "RECHAZADA";
     }
 }
-
