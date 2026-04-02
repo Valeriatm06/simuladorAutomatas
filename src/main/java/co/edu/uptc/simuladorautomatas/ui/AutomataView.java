@@ -41,6 +41,7 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Polygon;
 import javafx.scene.shape.QuadCurve;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.event.EventHandler;
@@ -50,6 +51,7 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -86,6 +88,7 @@ public class AutomataView {
     private String estadoSeleccionadoCanvas;
     private int modoActual; // 0=normal, 1=crear estado, 2=crear transicion, 3=seleccionar
     private String estadoEnCreacion; // Nombre del estado siendo creado
+    private final List<double[]> zonasEtiquetasTransicion = new ArrayList<>();
 
     public AutomataView(Stage stage) {
         this.stage = stage;
@@ -794,6 +797,7 @@ public class AutomataView {
 
     private void redibujar() {
         panelDibujo.getChildren().clear();
+        zonasEtiquetasTransicion.clear();
         Automata automata = controller.getAutomataActual();
 
         for (Transicion transicion : automata.getTransiciones()) {
@@ -876,10 +880,19 @@ public class AutomataView {
             loop.setStroke(Color.web("#334155"));
             loop.setStrokeWidth(1.6);
             Text etiqueta = new Text(transicion.getSimbolo());
-            etiqueta.setFill(Color.web("#1E40AF"));
-            etiqueta.setX(ox - 2);
-            etiqueta.setY(oy - radio - 30);
-            panelDibujo.getChildren().addAll(loop, etiqueta);
+            etiqueta.setFont(Font.font(13));
+            double textoW = etiqueta.getLayoutBounds().getWidth();
+            double textoH = etiqueta.getLayoutBounds().getHeight();
+            double[] pos = ajustarPosicionEtiqueta(
+                    ox,
+                    oy - radio - 38,
+                    textoW,
+                    textoH,
+                    0,
+                    -1
+            );
+            StackPane chip = crearChipEtiqueta(etiqueta, pos[0], pos[1]);
+            panelDibujo.getChildren().addAll(loop, chip);
             return;
         }
 
@@ -927,11 +940,78 @@ public class AutomataView {
         punta.setFill(Color.web("#334155"));
 
         Text etiqueta = new Text(transicion.getSimbolo());
-        etiqueta.setFill(Color.web("#1D4ED8"));
-        etiqueta.setX(controlX - (etiqueta.getLayoutBounds().getWidth() / 2));
-        etiqueta.setY(controlY - 10);
+        etiqueta.setFont(Font.font(13));
+        double textoW = etiqueta.getLayoutBounds().getWidth();
+        double textoH = etiqueta.getLayoutBounds().getHeight();
 
-        panelDibujo.getChildren().addAll(curva, punta, etiqueta);
+        // Punto medio de la curva (t=0.5) y offset normal para separar la etiqueta de la línea.
+        double medioX = (inicioX + (2 * controlX) + finX) / 4.0;
+        double medioY = (inicioY + (2 * controlY) + finY) / 4.0;
+        double etiquetaOffset = Math.max(14.0, radio * 0.45);
+        double baseEtiquetaX = medioX + (px * etiquetaOffset);
+        double baseEtiquetaY = medioY + (py * etiquetaOffset);
+        double[] pos = ajustarPosicionEtiqueta(baseEtiquetaX, baseEtiquetaY, textoW, textoH, px, py);
+        StackPane chip = crearChipEtiqueta(etiqueta, pos[0], pos[1]);
+
+        panelDibujo.getChildren().addAll(curva, punta, chip);
+    }
+
+    private StackPane crearChipEtiqueta(Text etiquetaTexto, double centerX, double centerY) {
+        etiquetaTexto.setFill(Color.web("#1D4ED8"));
+        double textoW = etiquetaTexto.getLayoutBounds().getWidth();
+        double textoH = etiquetaTexto.getLayoutBounds().getHeight();
+
+        Rectangle fondo = new Rectangle(textoW + 10, textoH + 6);
+        fondo.setArcWidth(10);
+        fondo.setArcHeight(10);
+        fondo.setFill(Color.web("rgba(248, 250, 252, 0.95)"));
+        fondo.setStroke(Color.web("#CBD5E1"));
+        fondo.setStrokeWidth(0.7);
+
+        StackPane chip = new StackPane(fondo, etiquetaTexto);
+        chip.setLayoutX(centerX - ((textoW + 10) / 2));
+        chip.setLayoutY(centerY - ((textoH + 6) / 2));
+        return chip;
+    }
+
+    private double[] ajustarPosicionEtiqueta(double centerX, double centerY, double textoW, double textoH,
+                                             double normalX, double normalY) {
+        double x = centerX;
+        double y = centerY;
+        double ancho = textoW + 10;
+        double alto = textoH + 6;
+
+        for (int intento = 0; intento < 7; intento++) {
+            double left = x - (ancho / 2.0);
+            double top = y - (alto / 2.0);
+            double right = left + ancho;
+            double bottom = top + alto;
+
+            if (!colisionaEtiqueta(left, top, right, bottom)) {
+                zonasEtiquetasTransicion.add(new double[] {left, top, right, bottom});
+                return new double[] {x, y};
+            }
+
+            double signo = (intento % 2 == 0) ? 1.0 : -1.0;
+            double paso = 10 + (intento * 5);
+            x += normalX * paso * signo;
+            y += normalY * paso * signo;
+        }
+
+        double left = x - (ancho / 2.0);
+        double top = y - (alto / 2.0);
+        zonasEtiquetasTransicion.add(new double[] {left, top, left + ancho, top + alto});
+        return new double[] {x, y};
+    }
+
+    private boolean colisionaEtiqueta(double left, double top, double right, double bottom) {
+        for (double[] zona : zonasEtiquetasTransicion) {
+            boolean separada = right < zona[0] || left > zona[2] || bottom < zona[1] || top > zona[3];
+            if (!separada) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private double escalaCanvas() {
