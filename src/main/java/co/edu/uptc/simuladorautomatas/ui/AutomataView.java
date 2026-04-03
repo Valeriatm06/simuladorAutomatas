@@ -98,6 +98,11 @@ public class AutomataView {
     private int modoActual; // 0=normal, 1=crear estado, 2=crear transicion, 3=seleccionar
     private String estadoEnCreacion; // Nombre del estado siendo creado
     private final List<double[]> zonasEtiquetasTransicion = new ArrayList<>();
+    
+    // Variables para arrastre de estados
+    private String estadoArrastrandose;
+    private double ultimaXMouse;
+    private double ultimaYMouse;
     private final Set<String> estadosResaltadosEvaluacion = new LinkedHashSet<>();
     private final Set<String> estadosFinalesEvaluacion = new LinkedHashSet<>();
     private EvaluacionCadenaResultado simulacionActual;
@@ -135,32 +140,10 @@ public class AutomataView {
         HBox filaSuperior = new HBox(10, titulo, spacer, reiniciarBtn);
         filaSuperior.setAlignment(Pos.CENTER_LEFT);
 
-        // Fila de botones de operaciones
-        HBox filaOperaciones = new HBox(12);
-        filaOperaciones.setAlignment(Pos.CENTER_LEFT);
-        filaOperaciones.setPadding(new Insets(8, 0, 0, 0));
-        
-        Button btnGuardar = new Button("💾 Guardar Autómata");
-        btnGuardar.setPrefWidth(150);
-        btnGuardar.setStyle("-fx-font-size: 12px; -fx-padding: 10 16;");
-        btnGuardar.getStyleClass().add("btn-primary");
-        btnGuardar.setOnAction(e -> guardarAutomata());
+        Region spacer2 = new Region();
+        spacer2.setPrefHeight(20);
 
-        Button btnCargar = new Button("📂 Cargar Autómata");
-        btnCargar.setPrefWidth(150);
-        btnCargar.setStyle("-fx-font-size: 12px; -fx-padding: 10 16;");
-        btnCargar.getStyleClass().add("btn-primary");
-        btnCargar.setOnAction(e -> cargarAutomata());
-
-        Button btnAyuda = new Button("❓ Ayuda");
-        btnAyuda.setPrefWidth(100);
-        btnAyuda.setStyle("-fx-font-size: 12px; -fx-padding: 10 16;");
-        btnAyuda.getStyleClass().add("btn-primary");
-        btnAyuda.setOnAction(e -> mostrarAyuda());
-
-        filaOperaciones.getChildren().addAll(btnGuardar, btnCargar, btnAyuda);
-
-        VBox header = new VBox(8, filaSuperior, filaOperaciones);
+        VBox header = new VBox(8, filaSuperior, spacer2);
         header.getStyleClass().add("top-header");
         return header;
     }
@@ -238,9 +221,18 @@ public class AutomataView {
         Button btnEstado = crearBotonToolbar("◯", "Agregar Estado", e -> activarModoCreacionEstado());
         Button btnTransicion = crearBotonToolbar("→", "Agregar Transción", e -> activarModoCreacionTransicion());
         Button btnBorrar = crearBotonToolbar("✕", "Eliminar Seleccionado", e -> eliminarElementoSeleccionado());
-        Button btnSeleccionar = crearBotonToolbar("↖", "Seleccionar", e -> activarModoSeleccion());
+        
+        // Separador
+        Separator sep = new Separator(Orientation.HORIZONTAL);
+        sep.setPadding(new Insets(8, 0, 8, 0));
+        sep.setStyle("-fx-padding: 8 0 8 0;");
+        
+        // Botones de archivo
+        Button btnGuardar = crearBotonToolbar("💾", "Guardar Autómata", e -> guardarAutomata());
+        Button btnCargar = crearBotonToolbar("📂", "Cargar Autómata", e -> cargarAutomata());
+        Button btnAyuda = crearBotonToolbar("❓", "Ayuda", e -> mostrarAyuda());
 
-        toolbar.getChildren().addAll(btnEstado, btnTransicion, btnBorrar, btnSeleccionar);
+        toolbar.getChildren().addAll(btnEstado, btnTransicion, btnBorrar, sep, btnGuardar, btnCargar, btnAyuda);
         return toolbar;
     }
 
@@ -530,11 +522,23 @@ public class AutomataView {
                 crearEstadoDesdeCanvas(event.getX(), event.getY());
                 return;
             }
-            if (modoActual == 3) {
-                seleccionarEstadoEnCanvas(event.getX(), event.getY());
-                return;
-            }
+            // Siempre intentar seleccionar al hacer click
             seleccionarEstadoEnCanvas(event.getX(), event.getY());
+        });
+        
+        // Manejador para iniciar arrastre
+        panel.setOnMousePressed(event -> {
+            iniciarArrastre(event.getX(), event.getY());
+        });
+        
+        // Manejador para arrastrar
+        panel.setOnMouseDragged(event -> {
+            continuarArrastre(event.getX(), event.getY());
+        });
+        
+        // Manejador para terminar arrastre
+        panel.setOnMouseReleased(event -> {
+            terminarArrastre();
         });
 
         // Animación de entrada suave
@@ -866,11 +870,6 @@ public class AutomataView {
         }
     }
 
-    private void activarModoSeleccion() {
-        modoActual = 3;
-        mostrarInfoEstado("Modo selección activado - Click en un estado para seleccionar");
-    }
-
     private void crearEstadoDesdeCanvas(double x, double y) {
         if (estadoEnCreacion == null || estadoEnCreacion.isEmpty()) {
             mostrarError("Ingrese el nombre del estado antes de hacer click en el canvas");
@@ -919,6 +918,74 @@ public class AutomataView {
             estadoSeleccionadoCanvas = encontrado;
             redibujar();
             mostrarInfoEstado("Estado seleccionado: " + encontrado);
+        }
+    }
+    
+    private void iniciarArrastre(double x, double y) {
+        if (modoCrearEstado || estadoEnCreacion != null) {
+            return; // No permitir arrastre en modo creación
+        }
+        
+        Automata automata = controller.getAutomataActual();
+        String encontrado = null;
+        double mejor = Double.MAX_VALUE;
+        
+        // Buscar qué estado está debajo del cursor
+        for (Estado estado : automata.getEstados()) {
+            double ex = logicoAVistaX(estado.getX());
+            double ey = logicoAVistaY(estado.getY());
+            double d = Math.hypot(ex - x, ey - y);
+            if (d <= radioEscalado() + 8 && d < mejor) {
+                encontrado = estado.getNombre();
+                mejor = d;
+            }
+        }
+        
+        // Si encontramos un estado para arrastrar
+        if (encontrado != null) {
+            estadoArrastrandose = encontrado;
+            ultimaXMouse = x;
+            ultimaYMouse = y;
+        }
+    }
+    
+    private void continuarArrastre(double x, double y) {
+        if (estadoArrastrandose == null) {
+            return; // No hay estado siendo arrastrado
+        }
+        
+        Automata automata = controller.getAutomataActual();
+        Optional<Estado> estadoOpt = automata.getEstados().stream()
+                .filter(e -> e.getNombre().equals(estadoArrastrandose))
+                .findFirst();
+        
+        if (estadoOpt.isPresent()) {
+            Estado estado = estadoOpt.get();
+            
+            // Calcular el desplazamiento en coordenadas lógicas
+            double deltaX = (x - ultimaXMouse) / escalaCanvas();
+            double deltaY = (y - ultimaYMouse) / escalaCanvas();
+            
+            // Actualizar posición del estado con límites de canvas
+            double nuevaX = ajustarXLogico(estado.getX() + deltaX);
+            double nuevaY = ajustarYLogico(estado.getY() + deltaY);
+            
+            estado.setX(nuevaX);
+            estado.setY(nuevaY);
+            
+            // Actualizar últimas coordenadas del mouse
+            ultimaXMouse = x;
+            ultimaYMouse = y;
+            
+            // Redibujar el canvas para mostrar el movimiento en tiempo real
+            redibujar();
+        }
+    }
+    
+    private void terminarArrastre() {
+        if (estadoArrastrandose != null) {
+            mostrarInfoEstado("Estado '" + estadoArrastrandose + "' movido");
+            estadoArrastrandose = null;
         }
     }
 
