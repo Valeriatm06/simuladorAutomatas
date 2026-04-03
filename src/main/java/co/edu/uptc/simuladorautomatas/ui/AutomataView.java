@@ -316,7 +316,8 @@ public class AutomataView {
         tituloPruebas.getStyleClass().add("section-title");
 
         palabrasArea = new TextArea();
-        palabrasArea.setPromptText("Ingrese una palabra por línea\\nUse ε/lambda para palabra vacía\\nEj:\\naba\\nε\\nabb");
+        palabrasArea.setPromptText("Ingrese una palabra por línea" + System.lineSeparator() +
+                "Use ε/lambda para palabra vacía" + System.lineSeparator());
         palabrasArea.setWrapText(true);
         palabrasArea.setPrefRowCount(8);
 
@@ -356,7 +357,7 @@ public class AutomataView {
 
         resultadosLoteList = new ListView<>();
         resultadosLoteList.getStyleClass().add("result-list");
-        resultadosLoteList.setPrefHeight(170);
+        resultadosLoteList.setPrefHeight(230);
         resultadosLoteList.setPlaceholder(new Label("Evalúe hasta 10 cadenas para ver resultados"));
         resultadosLoteList.setCellFactory(lv -> new javafx.scene.control.ListCell<>() {
             @Override
@@ -371,15 +372,7 @@ public class AutomataView {
             }
         });
 
-        btnVerPasoLote = new Button("Ver paso a paso");
-        btnVerPasoLote.getStyleClass().add("btn-secondary");
-        btnVerPasoLote.setMaxWidth(Double.MAX_VALUE);
-        btnVerPasoLote.setDisable(true);
-        btnVerPasoLote.setOnAction(e -> reproducirCadenaSeleccionadaLote());
-
-        resultadosLoteList.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            btnVerPasoLote.setDisable(newVal == null);
-        });
+        // btnVerPasoLote eliminado - usar doble clic en la lista en su lugar
 
         resultadosLoteList.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
@@ -390,21 +383,25 @@ public class AutomataView {
         btnSiguientePaso = new Button("Siguiente paso");
         btnSiguientePaso.getStyleClass().add("btn-secondary");
         btnSiguientePaso.setDisable(true);
+        btnSiguientePaso.setMaxWidth(Double.MAX_VALUE);
         btnSiguientePaso.setOnAction(e -> avanzarSimulacionManual());
 
         btnReproducir = new Button("Reproducir");
         btnReproducir.getStyleClass().add("btn-secondary");
         btnReproducir.setDisable(true);
+        btnReproducir.setMaxWidth(Double.MAX_VALUE);
         btnReproducir.setOnAction(e -> reproducirDesdeInicio());
 
         HBox botonesSimulacion = new HBox(8, btnSiguientePaso, btnReproducir);
         botonesSimulacion.setStyle("-fx-spacing: 8;");
+        botonesSimulacion.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(btnSiguientePaso, Priority.ALWAYS);
         HBox.setHgrow(btnReproducir, Priority.ALWAYS);
 
         VBox.setVgrow(resultadosLoteList, Priority.ALWAYS);
 
         estadoProcesoLabel = new Label("Seleccione una cadena de los resultados");
+        estadoProcesoLabel.setMaxWidth(Double.MAX_VALUE);
         estadoProcesoLabel.setStyle(
             "-fx-font-size: 12px; " +
             "-fx-text-fill: #64748B; " +
@@ -419,7 +416,6 @@ public class AutomataView {
                 new Separator(Orientation.HORIZONTAL),
                 resultadosLabel,
                 resultadosLoteList,
-                btnVerPasoLote,
                 botonesSimulacion,
                 estadoProcesoLabel
         );
@@ -1029,7 +1025,7 @@ public class AutomataView {
     }
 
     private void dibujarEstado(Estado estado) {
-        boolean seleccionado = estado.getNombre().equals(estadoSeleccionadoCanvas);
+        boolean seleccionado = estado.getNombre().equals(estadoSeleccionadoCanvas) && modoActual == 3;
         boolean resaltadoEvaluacion = estadosResaltadosEvaluacion.contains(estado.getNombre());
         boolean estadoFinal = estadosFinalesEvaluacion.contains(estado.getNombre());
         double x = logicoAVistaX(estado.getX());
