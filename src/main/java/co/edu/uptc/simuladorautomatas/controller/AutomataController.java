@@ -5,6 +5,7 @@ import co.edu.uptc.simuladorautomatas.logic.AutomataValidator;
 import co.edu.uptc.simuladorautomatas.logic.EvaluacionCadenaResultado;
 import co.edu.uptc.simuladorautomatas.model.Automata;
 import co.edu.uptc.simuladorautomatas.model.Estado;
+import co.edu.uptc.simuladorautomatas.model.SimbolosAutomata;
 import co.edu.uptc.simuladorautomatas.model.TipoAutomata;
 import co.edu.uptc.simuladorautomatas.model.Transicion;
 import co.edu.uptc.simuladorautomatas.persistence.AutomataJsonRepository;
@@ -36,6 +37,11 @@ public class AutomataController {
         this.automataActual.setAlfabeto(alfabeto);
     }
 
+    public void reiniciarAutomata() {
+        this.automataActual = new Automata(TipoAutomata.DFA);
+        this.automataActual.setAlfabeto(List.of());
+    }
+
     public void agregarEstado(String nombre, boolean inicial, boolean aceptacion, double x, double y) {
         Estado estado = new Estado(nombre, inicial, aceptacion, x, y);
         automataActual.agregarEstado(estado);
@@ -54,16 +60,22 @@ public class AutomataController {
     public void agregarTransicion(String origen, String simbolo, String destino) {
         Estado estadoOrigen = buscarEstado(origen);
         Estado estadoDestino = buscarEstado(destino);
-        automataActual.agregarTransicion(new Transicion(estadoOrigen, simbolo.trim(), estadoDestino));
+        String simboloNormalizado = SimbolosAutomata.normalizarSimboloTransicion(simbolo);
+        automataActual.agregarTransicion(new Transicion(estadoOrigen, simboloNormalizado, estadoDestino));
     }
 
     public List<EvaluacionCadenaResultado> evaluarLote(List<String> cadenas) {
-        List<String> entradas = cadenas.stream().map(String::trim).filter(s -> !s.isEmpty()).toList();
+        List<String> entradas = cadenas.stream().map(SimbolosAutomata::normalizarCadenaEntrada).toList();
         return evaluator.evaluarLote(automataActual, entradas);
     }
 
+    public List<EvaluacionCadenaResultado> evaluarLoteConTraza(List<String> cadenas) {
+        List<String> entradas = cadenas.stream().map(SimbolosAutomata::normalizarCadenaEntrada).toList();
+        return evaluator.evaluarLote(automataActual, entradas, true);
+    }
+
     public EvaluacionCadenaResultado evaluarConTraza(String cadena) {
-        return evaluator.evaluar(automataActual, cadena, true);
+        return evaluator.evaluar(automataActual, SimbolosAutomata.normalizarCadenaEntrada(cadena), true);
     }
 
     public void validarAutomata() {
@@ -82,6 +94,11 @@ public class AutomataController {
         List<String> nombres = new ArrayList<>();
         automataActual.getEstados().forEach(e -> nombres.add(e.getNombre()));
         return nombres;
+    }
+
+    public void eliminarEstado(String nombreEstado) {
+        Estado estado = buscarEstado(nombreEstado);
+        automataActual.eliminarEstado(estado);
     }
 
     private Estado buscarEstado(String nombre) {

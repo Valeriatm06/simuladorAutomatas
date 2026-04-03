@@ -46,7 +46,10 @@ public class Automata {
     public void setAlfabeto(List<String> simbolos) {
         alfabeto.clear();
         for (String simbolo : simbolos) {
-            String normalizado = simbolo == null ? "" : simbolo.trim();
+            String normalizado = SimbolosAutomata.normalizarSimboloTransicion(simbolo);
+            if (SimbolosAutomata.esEpsilon(normalizado)) {
+                continue;
+            }
             if (!normalizado.isEmpty() && !alfabeto.contains(normalizado)) {
                 alfabeto.add(normalizado);
             }
@@ -84,6 +87,20 @@ public class Automata {
         transiciones.add(transicion);
     }
 
+    public void eliminarEstado(Estado estado) {
+        if (!estados.contains(estado)) {
+            throw new IllegalArgumentException("El estado no pertenece al automata");
+        }
+        
+        // Eliminar todas las transiciones que involucren este estado
+        transiciones.removeIf(t -> 
+            t.getEstadoOrigen().equals(estado) || t.getEstadoDestino().equals(estado)
+        );
+        
+        // Eliminar el estado
+        estados.remove(estado);
+    }
+
     public void limpiar() {
         estados.clear();
         alfabeto.clear();
@@ -109,16 +126,24 @@ public class Automata {
 
     private void validarTransicion(Transicion transicion) {
         Objects.requireNonNull(transicion, "La transicion no puede ser nula");
+        String simboloNormalizado = SimbolosAutomata.normalizarSimboloTransicion(transicion.getSimbolo());
+        transicion.setSimbolo(simboloNormalizado);
         if (!estados.contains(transicion.getEstadoOrigen()) || !estados.contains(transicion.getEstadoDestino())) {
             throw new IllegalArgumentException("Origen y destino deben existir en el automata");
         }
-        if (!alfabeto.contains(transicion.getSimbolo())) {
-            throw new IllegalArgumentException("El simbolo " + transicion.getSimbolo() + " no pertenece al alfabeto");
+        if (SimbolosAutomata.esEpsilon(simboloNormalizado)) {
+            if (tipo == TipoAutomata.DFA) {
+                throw new IllegalArgumentException("En DFA no se permiten transiciones epsilon/lambda");
+            }
+            return;
+        }
+        if (!alfabeto.contains(simboloNormalizado)) {
+            throw new IllegalArgumentException("El simbolo " + simboloNormalizado + " no pertenece al alfabeto");
         }
         if (tipo == TipoAutomata.DFA) {
             boolean existe = transiciones.stream().anyMatch(t ->
                     t.getEstadoOrigen().equals(transicion.getEstadoOrigen())
-                            && t.getSimbolo().equals(transicion.getSimbolo()));
+                            && t.getSimbolo().equals(simboloNormalizado));
             if (existe) {
                 throw new IllegalArgumentException("En DFA no puede haber transiciones ambiguas para el mismo simbolo");
             }
