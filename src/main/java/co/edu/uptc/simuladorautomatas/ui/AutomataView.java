@@ -5,6 +5,7 @@ import co.edu.uptc.simuladorautomatas.logic.EvaluacionCadenaResultado;
 import co.edu.uptc.simuladorautomatas.logic.PasoEvaluacion;
 import co.edu.uptc.simuladorautomatas.model.Automata;
 import co.edu.uptc.simuladorautomatas.model.Estado;
+import co.edu.uptc.simuladorautomatas.model.SimbolosAutomata;
 import co.edu.uptc.simuladorautomatas.model.TipoAutomata;
 import co.edu.uptc.simuladorautomatas.model.Transicion;
 import javafx.animation.FadeTransition;
@@ -315,7 +316,7 @@ public class AutomataView {
         tituloPruebas.getStyleClass().add("section-title");
 
         palabrasArea = new TextArea();
-        palabrasArea.setPromptText("Ingrese una palabra por línea\\nEj:\\naba\\nabb\\nbaab");
+        palabrasArea.setPromptText("Ingrese una palabra por línea\\nUse ε/lambda para palabra vacía\\nEj:\\naba\\nε\\nabb");
         palabrasArea.setWrapText(true);
         palabrasArea.setPrefRowCount(8);
 
@@ -329,7 +330,23 @@ public class AutomataView {
         btnLimpiar.setMaxWidth(Double.MAX_VALUE);
         btnLimpiar.setOnAction(e -> palabrasArea.clear());
 
-        HBox botonesPruebas = new HBox(8, btnEvaluarTodas, btnLimpiar);
+        Button btnEpsilonPalabra = new Button("ε");
+        btnEpsilonPalabra.getStyleClass().add("btn-secondary");
+        btnEpsilonPalabra.setTooltip(new Tooltip("Agregar palabra vacía (epsilon)"));
+        btnEpsilonPalabra.setOnAction(e -> {
+            String actual = palabrasArea.getText();
+            if (actual == null || actual.isBlank()) {
+                palabrasArea.setText(SimbolosAutomata.EPSILON);
+            } else if (actual.endsWith("\n") || actual.endsWith("\r")) {
+                palabrasArea.appendText(SimbolosAutomata.EPSILON);
+            } else {
+                palabrasArea.appendText(System.lineSeparator() + SimbolosAutomata.EPSILON);
+            }
+            palabrasArea.requestFocus();
+            palabrasArea.positionCaret(palabrasArea.getText().length());
+        });
+
+        HBox botonesPruebas = new HBox(8, btnEvaluarTodas, btnLimpiar, btnEpsilonPalabra);
         botonesPruebas.setStyle("-fx-spacing: 8;");
         HBox.setHgrow(btnEvaluarTodas, Priority.ALWAYS);
         HBox.setHgrow(btnLimpiar, Priority.ALWAYS);
@@ -449,18 +466,19 @@ public class AutomataView {
     }
     
     private void evaluarPalabras() {
-        String contenido = palabrasArea.getText().trim();
-        if (contenido.isEmpty()) {
-            mostrarError("Ingrese palabras para evaluar");
+        List<String> entradas = Arrays.stream(palabrasArea.getText().split("\\R"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(SimbolosAutomata::normalizarCadenaEntrada)
+                .collect(Collectors.toList());
+
+        if (entradas.isEmpty()) {
+            mostrarError("Ingrese palabras para evaluar. Use ε o lambda para palabra vacía");
             return;
         }
 
         try {
             controller.validarAutomata();
-            List<String> entradas = Arrays.stream(contenido.split("\\n"))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toList());
             List<EvaluacionCadenaResultado> resultados = controller.evaluarLoteConTraza(entradas);
             resultadosUltimoLote = new ArrayList<>(resultados);
             resultadosLoteList.getItems().setAll(resultadosUltimoLote);
@@ -785,14 +803,20 @@ public class AutomataView {
         Label labelSimbolo = new Label("Símbolo:");
         labelSimbolo.getStyleClass().add("field-label");
         TextField campoSimbolo = new TextField();
-        campoSimbolo.setPromptText("ej: a");
+        campoSimbolo.setPromptText("ej: a (vacío = ε en NFA)");
+        Button btnEpsilon = new Button("ε");
+        btnEpsilon.getStyleClass().add("btn-secondary");
+        btnEpsilon.setOnAction(e -> campoSimbolo.setText(SimbolosAutomata.EPSILON));
+        btnEpsilon.setTooltip(new Tooltip("Usar transición epsilon/lambda"));
+        HBox simboloBox = new HBox(8, campoSimbolo, btnEpsilon);
+        HBox.setHgrow(campoSimbolo, Priority.ALWAYS);
 
         Label labelDestino = new Label("Estado destino:");
         labelDestino.getStyleClass().add("field-label");
         ComboBox<String> comboDestino = new ComboBox<>();
         comboDestino.getItems().addAll(controller.nombresEstados());
 
-        content.getChildren().addAll(labelOrigen, comboOrigen, labelSimbolo, campoSimbolo,
+        content.getChildren().addAll(labelOrigen, comboOrigen, labelSimbolo, simboloBox,
                                     labelDestino, comboDestino);
 
         dialog.getDialogPane().setContent(content);
@@ -800,7 +824,12 @@ public class AutomataView {
 
         if (result.isPresent() && result.get() == ButtonType.OK) {
             try {
-                controller.agregarTransicion(comboOrigen.getValue(), campoSimbolo.getText(),
+                String simboloIngresado = campoSimbolo.getText() == null ? "" : campoSimbolo.getText().trim();
+                if (simboloIngresado.isEmpty()) {
+                    simboloIngresado = SimbolosAutomata.EPSILON;
+                }
+
+                controller.agregarTransicion(comboOrigen.getValue(), simboloIngresado,
                                             comboDestino.getValue());
                 redibujar();
                 mostrarInfoEstado("Transición agregada");
@@ -972,7 +1001,7 @@ public class AutomataView {
             "3. AGREGAR TRANSICIONES:\n" +
             "   • Presione el botón → en la barra izquierda\n" +
             "   • Seleccione estado origen y destino\n" +
-            "   • Ingrese el símbolo del alfabeto\n\n" +
+            "   • Ingrese el símbolo del alfabeto (en NFA también puede usar ε/lambda)\n\n" +
             "4. ELIMINAR ELEMENTOS:\n" +
             "   • Presione el botón ✕ para eliminar un estado\n" +
             "   • Seleccione el estado a eliminar\n\n" +
@@ -1090,7 +1119,7 @@ public class AutomataView {
             Circle loop = new Circle(ox, oy - radio - 18, 16, Color.TRANSPARENT);
             loop.setStroke(Color.web("#334155"));
             loop.setStrokeWidth(1.6);
-            Text etiqueta = new Text(transicion.getSimbolo());
+            Text etiqueta = new Text(formatearSimboloVisual(transicion.getSimbolo()));
             etiqueta.setFont(Font.font(13));
             double textoW = etiqueta.getLayoutBounds().getWidth();
             double textoH = etiqueta.getLayoutBounds().getHeight();
@@ -1150,7 +1179,7 @@ public class AutomataView {
         );
         punta.setFill(Color.web("#334155"));
 
-        Text etiqueta = new Text(transicion.getSimbolo());
+        Text etiqueta = new Text(formatearSimboloVisual(transicion.getSimbolo()));
         etiqueta.setFont(Font.font(13));
         double textoW = etiqueta.getLayoutBounds().getWidth();
         double textoH = etiqueta.getLayoutBounds().getHeight();
@@ -1377,6 +1406,11 @@ public class AutomataView {
         if (!estadoProcesoLabel.getStyleClass().contains("status-ok")) {
             estadoProcesoLabel.getStyleClass().add("status-ok");
         }
+    }
+
+    private String formatearSimboloVisual(String simbolo) {
+        String normalizado = SimbolosAutomata.normalizarSimboloTransicion(simbolo);
+        return SimbolosAutomata.esEpsilon(normalizado) ? SimbolosAutomata.EPSILON : normalizado;
     }
 
     private void mostrarError(String mensaje) {

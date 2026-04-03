@@ -2,6 +2,7 @@ package co.edu.uptc.simuladorautomatas.persistence;
 
 import co.edu.uptc.simuladorautomatas.model.Automata;
 import co.edu.uptc.simuladorautomatas.model.Estado;
+import co.edu.uptc.simuladorautomatas.model.SimbolosAutomata;
 import co.edu.uptc.simuladorautomatas.model.TipoAutomata;
 import co.edu.uptc.simuladorautomatas.model.Transicion;
 import com.google.gson.Gson;
@@ -57,7 +58,7 @@ public class AutomataJsonRepository {
         dto.transiciones = automata.getTransiciones().stream().map(t -> {
             TransicionDto transicionDto = new TransicionDto();
             transicionDto.origen = t.getEstadoOrigen().getNombre();
-            transicionDto.simbolo = t.getSimbolo();
+            transicionDto.simbolo = SimbolosAutomata.normalizarSimboloTransicion(t.getSimbolo());
             transicionDto.destino = t.getEstadoDestino().getNombre();
             return transicionDto;
         }).toList();
@@ -84,7 +85,8 @@ public class AutomataJsonRepository {
                 if (origen == null || destino == null) {
                     throw new IllegalStateException("Transicion con estado inexistente en JSON");
                 }
-                automata.agregarTransicion(new Transicion(origen, transicionDto.simbolo, destino));
+                String simbolo = SimbolosAutomata.normalizarSimboloTransicion(transicionDto.simbolo);
+                automata.agregarTransicion(new Transicion(origen, simbolo, destino));
             }
         }
         return automata;

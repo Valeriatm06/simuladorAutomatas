@@ -1,5 +1,6 @@
 co\edu\uptc\simuladorautomatas\model\Estado.class
 co\edu\uptc\simuladorautomatas\logic\AutomataEvaluator.class
+co\edu\uptc\simuladorautomatas\model\SimbolosAutomata.class
 co\edu\uptc\simuladorautomatas\controller\AutomataController.class
 co\edu\uptc\simuladorautomatas\persistence\AutomataJsonRepository$AutomataDto.class
 co\edu\uptc\simuladorautomatas\ui\MainApp.class
