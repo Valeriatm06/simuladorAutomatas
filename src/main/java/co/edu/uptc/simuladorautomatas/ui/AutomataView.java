@@ -1525,4 +1525,3 @@ public class AutomataView {
         }
     }
 }
-
