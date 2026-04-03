@@ -10,4 +10,9 @@ C:\Users\arian\OneDrive\Universidad\7\Lenguajes Formales\simuladorAutomatas\src\
 C:\Users\arian\OneDrive\Universidad\7\Lenguajes Formales\simuladorAutomatas\src\main\java\co\edu\uptc\simuladorautomatas\model\Transicion.java
 C:\Users\arian\OneDrive\Universidad\7\Lenguajes Formales\simuladorAutomatas\src\main\java\co\edu\uptc\simuladorautomatas\persistence\AutomataJsonRepository.java
 C:\Users\arian\OneDrive\Universidad\7\Lenguajes Formales\simuladorAutomatas\src\main\java\co\edu\uptc\simuladorautomatas\ui\AutomataView.java
+C:\Users\arian\OneDrive\Universidad\7\Lenguajes Formales\simuladorAutomatas\src\main\java\co\edu\uptc\simuladorautomatas\ui\AutomataViewDrawing.java
+C:\Users\arian\OneDrive\Universidad\7\Lenguajes Formales\simuladorAutomatas\src\main\java\co\edu\uptc\simuladorautomatas\ui\AutomataViewFileOps.java
+C:\Users\arian\OneDrive\Universidad\7\Lenguajes Formales\simuladorAutomatas\src\main\java\co\edu\uptc\simuladorautomatas\ui\AutomataViewInteraction.java
+C:\Users\arian\OneDrive\Universidad\7\Lenguajes Formales\simuladorAutomatas\src\main\java\co\edu\uptc\simuladorautomatas\ui\AutomataViewSimulation.java
+C:\Users\arian\OneDrive\Universidad\7\Lenguajes Formales\simuladorAutomatas\src\main\java\co\edu\uptc\simuladorautomatas\ui\AutomataViewUIBuilder.java
 C:\Users\arian\OneDrive\Universidad\7\Lenguajes Formales\simuladorAutomatas\src\main\java\co\edu\uptc\simuladorautomatas\ui\MainApp.java
