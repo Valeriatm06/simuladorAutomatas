@@ -1,8 +1,14 @@
 package co.edu.uptc.simuladorautomatas.ui;
 
 import co.edu.uptc.simuladorautomatas.controller.AutomataController;
+import javafx.geometry.Insets;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Separator;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import java.io.File;
@@ -67,35 +73,61 @@ public class AutomataViewFileOps {
     }
 
     public void mostrarAyuda() {
-        Alert ayuda = new Alert(Alert.AlertType.INFORMATION);
-        ayuda.setTitle("Ayuda - Simulador de Autómatas");
-        ayuda.setHeaderText("Manual de Uso");
-        ayuda.setContentText(
-            "SIMULADOR DE AUTÓMATAS FINITOS\n\n" +
-            "1. CREAR AUTÓMATA:\n" +
-            "   • Seleccione el tipo (DFA o NFA)\n" +
-            "   • Defina el alfabeto separado por comas\n" +
-            "   • Presione 'Crear Autómata'\n\n" +
-            "2. AGREGAR ESTADOS:\n" +
-            "   • Presione el botón ⊕ en la barra izquierda\n" +
-            "   • Ingrese el nombre del estado\n" +
-            "   • Seleccione si es inicial o final\n" +
-            "   • Haga click en el canvas para ubicarlo\n\n" +
-            "3. AGREGAR TRANSICIONES:\n" +
-            "   • Presione el botón → en la barra izquierda\n" +
-            "   • Seleccione estado origen y destino\n" +
-            "   • Ingrese el símbolo del alfabeto (en NFA también puede usar ε/lambda)\n\n" +
-            "4. ELIMINAR ELEMENTOS:\n" +
-            "   • Presione el botón ✕ para eliminar un estado\n" +
-            "   • Seleccione el estado a eliminar\n\n" +
-            "5. EVALUAR CADENAS:\n" +
-            "   • Use el panel derecho para ingresar palabras\n" +
-            "   • Presione 'Evaluar Todas' para probar múltiples cadenas\n\n" +
-            "6. GUARDAR Y CARGAR:\n" +
-            "   • Use los botones en la barra izquierda\n" +
-            "   • Los archivos se guardan en formato JSON"
+        Dialog<Void> ayuda = new Dialog<>();
+        ayuda.setTitle("Ayuda - Simulador de Automatas");
+        ayuda.setHeaderText("Guia rapida de uso");
+        ayuda.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        VBox contenido = new VBox(12);
+        contenido.setPadding(new Insets(8, 4, 8, 4));
+        contenido.getChildren().addAll(
+                crearSeccionAyuda("1) Crear automata",
+                        "Seleccione el tipo (DFA o NFA)",
+                        "Defina el alfabeto separado por comas",
+                        "Pulse 'Crear Automata'"),
+                new Separator(),
+                crearSeccionAyuda("2) Agregar estados",
+                        "Pulse el boton de estado en la barra izquierda",
+                        "Ingrese nombre y marque inicial/final si aplica",
+                        "Haga click en el canvas para ubicarlo"),
+                new Separator(),
+                crearSeccionAyuda("3) Agregar transiciones",
+                        "Pulse el boton de transicion",
+                        "Seleccione origen, simbolo y destino",
+                        "En NFA puede usar epsilon con el boton e o dejando vacio el simbolo"),
+                new Separator(),
+                crearSeccionAyuda("4) Evaluar y simular",
+                        "Ingrese una palabra por linea en el panel derecho",
+                        "Pulse 'Evaluar Todas'",
+                        "Seleccione un resultado y use 'Siguiente paso' o 'Reproducir'"),
+                new Separator(),
+                crearSeccionAyuda("5) Guardar y cargar",
+                        "Use los botones de guardar/cargar en la barra izquierda",
+                        "El formato de archivo es JSON")
         );
+
+        ScrollPane scroll = new ScrollPane(contenido);
+        scroll.setFitToWidth(true);
+        scroll.setPrefViewportHeight(420);
+        scroll.setPrefViewportWidth(520);
+
+        ayuda.getDialogPane().setContent(scroll);
         ayuda.showAndWait();
+    }
+
+    private VBox crearSeccionAyuda(String titulo, String... puntos) {
+        Label tituloLabel = new Label(titulo);
+        tituloLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1F2937;");
+
+        VBox seccion = new VBox(6);
+        seccion.getChildren().add(tituloLabel);
+        for (String punto : puntos) {
+            Label linea = new Label("• " + punto);
+            linea.setWrapText(true);
+            linea.setStyle("-fx-font-size: 12px; -fx-text-fill: #334155;");
+            seccion.getChildren().add(linea);
+        }
+        return seccion;
     }
 
     public void confirmarReinicio() {

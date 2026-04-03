@@ -15,7 +15,10 @@ import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.layout.StackPane;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -41,8 +44,9 @@ public class AutomataViewDrawing {
         zonasEtiquetasTransicion.clear();
         calcularEscala();
 
-        for (Transicion transicion : automata.getTransiciones()) {
-            dibujarTransicion(transicion, estadoSeleccionado);
+        for (Map.Entry<AristaKey, String> entrada : agruparTransiciones(automata.getTransiciones()).entrySet()) {
+            AristaKey arista = entrada.getKey();
+            dibujarTransicion(arista.origen, arista.destino, entrada.getValue());
         }
         for (Estado estado : automata.getEstados()) {
             dibujarEstado(estado, estadoSeleccionado, estadosResaltados, estadosFinales, ultimoResultadoAceptado);
@@ -129,9 +133,7 @@ public class AutomataViewDrawing {
         panelDibujo.getChildren().add(texto);
     }
 
-    private void dibujarTransicion(Transicion transicion, String estadoSeleccionado) {
-        Estado origen = transicion.getEstadoOrigen();
-        Estado destino = transicion.getEstadoDestino();
+    private void dibujarTransicion(Estado origen, Estado destino, String etiquetaSimbolos) {
         double radio = radioEscalado();
         double ox = logicoAVistaX(origen.getX());
         double oy = logicoAVistaY(origen.getY());
@@ -142,7 +144,7 @@ public class AutomataViewDrawing {
             Circle loop = new Circle(ox, oy - radio - 18, 16, Color.TRANSPARENT);
             loop.setStroke(Color.web("#334155"));
             loop.setStrokeWidth(1.6);
-            Text etiqueta = new Text(formatearSimboloVisual(transicion.getSimbolo()));
+            Text etiqueta = new Text(etiquetaSimbolos);
             etiqueta.setFont(Font.font(13));
             double textoW = etiqueta.getLayoutBounds().getWidth();
             double textoH = etiqueta.getLayoutBounds().getHeight();
@@ -191,7 +193,7 @@ public class AutomataViewDrawing {
         );
         punta.setFill(Color.web("#334155"));
 
-        Text etiqueta = new Text(formatearSimboloVisual(transicion.getSimbolo()));
+        Text etiqueta = new Text(etiquetaSimbolos);
         etiqueta.setFont(Font.font(13));
         double textoW = etiqueta.getLayoutBounds().getWidth();
         double textoH = etiqueta.getLayoutBounds().getHeight();
@@ -205,6 +207,21 @@ public class AutomataViewDrawing {
         StackPane chip = crearChipEtiqueta(etiqueta, pos[0], pos[1]);
 
         panelDibujo.getChildren().addAll(curva, punta, chip);
+    }
+
+    private Map<AristaKey, String> agruparTransiciones(List<Transicion> transiciones) {
+        Map<AristaKey, LinkedHashSet<String>> agrupadas = new LinkedHashMap<>();
+        for (Transicion transicion : transiciones) {
+            AristaKey key = new AristaKey(transicion.getEstadoOrigen(), transicion.getEstadoDestino());
+            String simbolo = formatearSimboloVisual(transicion.getSimbolo());
+            agrupadas.computeIfAbsent(key, k -> new LinkedHashSet<>()).add(simbolo);
+        }
+
+        Map<AristaKey, String> etiquetas = new LinkedHashMap<>();
+        for (Map.Entry<AristaKey, LinkedHashSet<String>> entrada : agrupadas.entrySet()) {
+            etiquetas.put(entrada.getKey(), String.join(", ", entrada.getValue()));
+        }
+        return etiquetas;
     }
 
     private StackPane crearChipEtiqueta(Text etiquetaTexto, double centerX, double centerY) {
@@ -306,5 +323,31 @@ public class AutomataViewDrawing {
     private String formatearSimboloVisual(String simbolo) {
         String normalizado = SimbolosAutomata.normalizarSimboloTransicion(simbolo);
         return SimbolosAutomata.esEpsilon(normalizado) ? SimbolosAutomata.EPSILON : normalizado;
+    }
+
+    private static final class AristaKey {
+        private final Estado origen;
+        private final Estado destino;
+
+        private AristaKey(Estado origen, Estado destino) {
+            this.origen = origen;
+            this.destino = destino;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof AristaKey that)) {
+                return false;
+            }
+            return origen.equals(that.origen) && destino.equals(that.destino);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * origen.hashCode() + destino.hashCode();
+        }
     }
 }
