@@ -116,7 +116,6 @@ public class AutomataView {
         root.getStyleClass().add("app-root-with-grid");
         root.setTop(crearHeader());
         root.setCenter(crearZonaPrincipal());
-        root.setBottom(crearTimelineEvaluacion());
         // El autómata se crea cuando el usuario completa el formulario en el panel derecho
         return root;
     }
@@ -371,7 +370,30 @@ public class AutomataView {
             }
         });
 
+        btnSiguientePaso = new Button("Siguiente paso");
+        btnSiguientePaso.getStyleClass().add("btn-secondary");
+        btnSiguientePaso.setDisable(true);
+        btnSiguientePaso.setOnAction(e -> avanzarSimulacionManual());
+
+        btnReproducir = new Button("Reproducir");
+        btnReproducir.getStyleClass().add("btn-secondary");
+        btnReproducir.setDisable(true);
+        btnReproducir.setOnAction(e -> reproducirDesdeInicio());
+
+        HBox botonesSimulacion = new HBox(8, btnSiguientePaso, btnReproducir);
+        botonesSimulacion.setStyle("-fx-spacing: 8;");
+        HBox.setHgrow(btnSiguientePaso, Priority.ALWAYS);
+        HBox.setHgrow(btnReproducir, Priority.ALWAYS);
+
         VBox.setVgrow(resultadosLoteList, Priority.ALWAYS);
+
+        estadoProcesoLabel = new Label("Seleccione una cadena de los resultados");
+        estadoProcesoLabel.setStyle(
+            "-fx-font-size: 12px; " +
+            "-fx-text-fill: #64748B; " +
+            "-fx-wrap-text: true;"
+        );
+        estadoProcesoLabel.getStyleClass().add("status-chip");
 
         panelPruebas.getChildren().addAll(
                 tituloPruebas,
@@ -380,7 +402,9 @@ public class AutomataView {
                 new Separator(Orientation.HORIZONTAL),
                 resultadosLabel,
                 resultadosLoteList,
-                btnVerPasoLote
+                btnVerPasoLote,
+                botonesSimulacion,
+                estadoProcesoLabel
         );
 
         stackPane.getChildren().addAll(panelConfiguracion, panelPruebas);
@@ -508,73 +532,6 @@ public class AutomataView {
         panel.widthProperty().addListener((obs, oldVal, newVal) -> redibujar());
         panel.heightProperty().addListener((obs, oldVal, newVal) -> redibujar());
         return panel;
-    }
-
-    private Parent crearTimelineEvaluacion() {
-        VBox contenedor = new VBox(8);
-        contenedor.setPadding(new Insets(12));
-        contenedor.getStyleClass().add("timeline-container");
-        VBox.setVgrow(contenedor, Priority.NEVER);
-
-        // Título
-        Label titulo = new Label("Evaluación de Cadenas");
-        titulo.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #0F172A;");
-
-        // Panel de entrada
-        HBox panelEntrada = new HBox(8);
-        panelEntrada.setAlignment(Pos.CENTER_LEFT);
-        
-        TextField cadenaInputField = new TextField();
-        cadenaInputField.setPromptText("Ingrese una cadena para evaluar (ej: 10101010)");
-        cadenaInputField.setStyle("-fx-font-size: 12px; -fx-padding: 8;");
-        HBox.setHgrow(cadenaInputField, Priority.ALWAYS);
-
-        Button evaluarBtn = new Button("Evaluar");
-        evaluarBtn.getStyleClass().add("btn-primary");
-        evaluarBtn.setPrefWidth(100);
-        evaluarBtn.setStyle("-fx-font-size: 12px; -fx-padding: 8 16;");
-        evaluarBtn.setOnAction(e -> evaluarCadenaUnica(cadenaInputField.getText()));
-
-        btnSiguientePaso = new Button("Siguiente paso");
-        btnSiguientePaso.getStyleClass().add("btn-secondary");
-        btnSiguientePaso.setDisable(true);
-        btnSiguientePaso.setOnAction(e -> avanzarSimulacionManual());
-
-        btnReproducir = new Button("Reproducir");
-        btnReproducir.getStyleClass().add("btn-secondary");
-        btnReproducir.setDisable(true);
-        btnReproducir.setOnAction(e -> reproducirDesdeInicio());
-
-        panelEntrada.getChildren().addAll(cadenaInputField, evaluarBtn, btnSiguientePaso, btnReproducir);
-
-        // Panel de resultados
-        VBox panelResultados = new VBox(8);
-        panelResultados.setStyle(
-            "-fx-border-color: #E2E8F0; " +
-            "-fx-border-width: 1; " +
-            "-fx-background-color: #F8FAFC; " +
-            "-fx-border-radius: 8; " +
-            "-fx-padding: 12;"
-        );
-        panelResultados.setPrefHeight(120);
-        panelResultados.setMinHeight(80);
-
-        Label etiquetaResultados = new Label("Resultado:");
-        etiquetaResultados.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #475569;");
-
-        estadoProcesoLabel = new Label("Ingrese una cadena y presione 'Evaluar'");
-        estadoProcesoLabel.setStyle(
-            "-fx-font-size: 12px; " +
-            "-fx-text-fill: #64748B; " +
-            "-fx-wrap-text: true;"
-        );
-        estadoProcesoLabel.getStyleClass().add("status-chip");
-
-        panelResultados.getChildren().addAll(etiquetaResultados, estadoProcesoLabel);
-        VBox.setVgrow(panelResultados, Priority.ALWAYS);
-
-        contenedor.getChildren().addAll(titulo, panelEntrada, panelResultados);
-        return contenedor;
     }
 
     private void evaluarCadenaUnica(String cadena) {
