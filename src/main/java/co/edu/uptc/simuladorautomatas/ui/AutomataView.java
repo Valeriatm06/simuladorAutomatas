@@ -235,10 +235,10 @@ public class AutomataView {
         toolbar.setMaxWidth(60);
         toolbar.setMinWidth(60);
 
-        Button btnEstado = crearBotonToolbar("⊕", "Agregar Estado", e -> activarModoCreacionEstado());
+        Button btnEstado = crearBotonToolbar("◯", "Agregar Estado", e -> activarModoCreacionEstado());
         Button btnTransicion = crearBotonToolbar("→", "Agregar Transción", e -> activarModoCreacionTransicion());
         Button btnBorrar = crearBotonToolbar("✕", "Eliminar Seleccionado", e -> eliminarElementoSeleccionado());
-        Button btnSeleccionar = crearBotonToolbar("◯", "Seleccionar", e -> activarModoSeleccion());
+        Button btnSeleccionar = crearBotonToolbar("↖", "Seleccionar", e -> activarModoSeleccion());
 
         toolbar.getChildren().addAll(btnEstado, btnTransicion, btnBorrar, btnSeleccionar);
         return toolbar;
