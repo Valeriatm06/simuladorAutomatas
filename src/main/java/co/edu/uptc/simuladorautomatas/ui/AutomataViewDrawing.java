@@ -12,7 +12,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Polygon;
-import javafx.scene.shape.QuadCurve;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
@@ -331,7 +330,7 @@ public class AutomataViewDrawing {
 
         capaTransiciones.getChildren().addAll(curva, punta, chip);
     }
-        
+
     private Map<AristaKey, String> agruparTransiciones(List<Transicion> transiciones) {
         Map<AristaKey, LinkedHashSet<String>> agrupadas = new LinkedHashMap<>();
         for (Transicion transicion : transiciones) {
