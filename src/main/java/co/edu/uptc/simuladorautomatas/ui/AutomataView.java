@@ -5,33 +5,33 @@ import co.edu.uptc.simuladorautomatas.logic.EvaluacionCadenaResultado;
 import co.edu.uptc.simuladorautomatas.model.TipoAutomata;
 import javafx.animation.FadeTransition;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Parent;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * AutomataView - Vista principal del simulador de autómatas.
- * 
- * Esta clase coordina los componentes de la UI utilizando clases especializadas:
- * - AutomataViewUIBuilder: Construcción de paneles UI
- * - AutomataViewDrawing: Dibujado en canvas
- * - AutomataViewInteraction: Interacción con estados/transiciones
- * - AutomataViewSimulation: Simulación y evaluación
- * - AutomataViewFileOps: Operaciones de archivo
+ * Vista principal del simulador de automatas.
  */
 public class AutomataView {
+    private static final double CANVAS_WIDTH = 900;
+    private static final double CANVAS_HEIGHT = 620;
+    private static final double MARGEN_ESTADO = 46;
+
     private final Stage stage;
     private final AutomataController controller;
 
@@ -46,7 +46,7 @@ public class AutomataView {
     private ComboBox<TipoAutomata> tipoCombo;
     private VBox panelConfiguracion;
     private VBox panelPruebas;
-    private VBox[] stepBoxes = new VBox[4];
+    private final VBox[] stepBoxes = new VBox[4];
 
     // Clases de soporte
     private AutomataViewUIBuilder uiBuilder;
@@ -55,15 +55,12 @@ public class AutomataView {
     private AutomataViewSimulation simulationManager;
     private AutomataViewFileOps fileOps;
 
-    // Estados de UI
+    // Estado UI
     private String estadoSeleccionadoCanvas;
     private String estadoArrastrandose;
     private double ultimaXMouse;
     private double ultimaYMouse;
     private boolean modoCrearEstado;
-    private String estadoEnCreacion;
-    private boolean nuevoEstadoInicial;
-    private boolean nuevoEstadoAceptacion;
 
     public AutomataView(Stage stage) {
         this.stage = stage;
@@ -86,78 +83,94 @@ public class AutomataView {
     private Parent crearZonaPrincipal() {
         BorderPane contenedor = new BorderPane();
         contenedor.setPadding(new Insets(12));
+        agregarToolbar(contenedor);
+        configurarCanvas(contenedor);
+        agregarPanelDerecho(contenedor);
+        return contenedor;
+    }
 
-        // Toolbar izquierda
+    private void agregarToolbar(BorderPane contenedor) {
         VBox toolbar = uiBuilder.crearToolbarFlotante(
-            this::activarModoCreacionEstado,
-            this::activarModoCreacionTransicion,
-            this::eliminarElementoSeleccionado,
-            () -> fileOps.guardarAutomata(),
-            () -> fileOps.cargarAutomata(),
-            () -> fileOps.mostrarAyuda()
+                this::activarModoCreacionEstado,
+                this::activarModoCreacionTransicion,
+                this::eliminarElementoSeleccionado,
+                () -> fileOps.guardarAutomata(),
+                () -> fileOps.cargarAutomata(),
+                () -> fileOps.mostrarAyuda()
         );
         contenedor.setLeft(toolbar);
         BorderPane.setMargin(toolbar, new Insets(0, 8, 0, 0));
+    }
 
-        // Canvas central
+    private void configurarCanvas(BorderPane contenedor) {
         panelDibujo = new Pane();
-        panelDibujo.setPrefSize(900, 620);
+        panelDibujo.setPrefSize(CANVAS_WIDTH, CANVAS_HEIGHT);
         panelDibujo.getStyleClass().add("canvas-pane");
+        configurarEventosCanvas();
+        animarEntradaCanvas();
+        contenedor.setCenter(panelDibujo);
+    }
+
+    private void configurarEventosCanvas() {
         panelDibujo.setOnMouseClicked(e -> onCanvasMouseClicked(e.getX(), e.getY()));
         panelDibujo.setOnMousePressed(e -> onCanvasMousePressed(e.getX(), e.getY()));
         panelDibujo.setOnMouseDragged(e -> onCanvasMouseDragged(e.getX(), e.getY()));
         panelDibujo.setOnMouseReleased(e -> onCanvasMouseReleased());
         panelDibujo.widthProperty().addListener((o, ol, nw) -> redibujar());
         panelDibujo.heightProperty().addListener((o, ol, nw) -> redibujar());
+    }
 
+    private void animarEntradaCanvas() {
         FadeTransition fadeIn = new FadeTransition(Duration.millis(400), panelDibujo);
         fadeIn.setFromValue(0.8);
         fadeIn.setToValue(1.0);
         fadeIn.play();
+    }
 
-        contenedor.setCenter(panelDibujo);
-
-        // Panel detalles derecha
+    private void agregarPanelDerecho(BorderPane contenedor) {
         inicializarComponentesUI();
         VBox[] panelConfigOut = new VBox[1];
         VBox[] panelPruebasOut = new VBox[1];
-        
+
         StackPane panelDetalles = uiBuilder.crearPanelDetalles(
-            tipoCombo, alfabetoField, this::crearNuevoAutomata,
-            palabrasArea, this::evaluarPalabras, 
-            () -> palabrasArea.clear(),
-            this::agregarEpsilon,
-            resultadosLoteList, btnSiguientePaso, btnReproducir,
-            this::avanzarSimulacionManual,
-            this::reproducirDesdeInicio,
-            estadoProcesoLabel,
-            panelConfigOut, panelPruebasOut
+                tipoCombo, alfabetoField, this::crearNuevoAutomata,
+                palabrasArea, this::evaluarPalabras,
+                () -> palabrasArea.clear(), this::agregarEpsilon,
+                resultadosLoteList, btnSiguientePaso, btnReproducir,
+                this::avanzarSimulacionManual, this::reproducirDesdeInicio,
+                estadoProcesoLabel, panelConfigOut, panelPruebasOut
         );
-        
+
         panelConfiguracion = panelConfigOut[0];
         panelPruebas = panelPruebasOut[0];
-        
         contenedor.setRight(panelDetalles);
         BorderPane.setMargin(panelDetalles, new Insets(0, 0, 0, 8));
-
-        return contenedor;
     }
 
     private void inicializarComponentesUI() {
+        crearControlesBase();
+        configurarListaResultados();
+        inicializarServicios();
+        configurarCallbacks();
+        uiBuilder.crearStepperVisual(stepBoxes);
+    }
+
+    private void crearControlesBase() {
         tipoCombo = new ComboBox<>();
         alfabetoField = new TextField();
         palabrasArea = new TextArea();
         resultadosLoteList = new ListView<>();
-        resultadosLoteList.setCellFactory(lv -> new ListCell<EvaluacionCadenaResultado>() {
+        btnSiguientePaso = new Button("Siguiente paso");
+        btnReproducir = new Button("Reproducir");
+        estadoProcesoLabel = new Label("Seleccione una cadena de los resultados");
+    }
+
+    private void configurarListaResultados() {
+        resultadosLoteList.setCellFactory(lv -> new ListCell<>() {
             @Override
             protected void updateItem(EvaluacionCadenaResultado item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                } else {
-                    String valorCadena = item.getCadena().isEmpty() ? "ε" : item.getCadena();
-                    setText((getIndex() + 1) + ". " + valorCadena + " -> " + item.getEstadoTexto());
-                }
+                setText(obtenerTextoResultado(item, empty, getIndex()));
             }
         });
         resultadosLoteList.setOnMouseClicked(e -> {
@@ -165,117 +178,137 @@ public class AutomataView {
                 reproducirCadenaSeleccionadaLote();
             }
         });
-        btnSiguientePaso = new Button("Siguiente paso");
-        btnReproducir = new Button("Reproducir");
-        estadoProcesoLabel = new Label("Seleccione una cadena de los resultados");
+    }
 
-        // Inicializar clases de soporte
+    private String obtenerTextoResultado(EvaluacionCadenaResultado item, boolean empty, int index) {
+        if (empty || item == null) {
+            return null;
+        }
+        String valorCadena = item.getCadena().isEmpty() ? "ε" : item.getCadena();
+        return ("%d. %s -> %s").formatted(index + 1, valorCadena, item.getEstadoTexto());
+    }
+
+    private void inicializarServicios() {
         drawingEngine = new AutomataViewDrawing(panelDibujo);
         interactionHandler = new AutomataViewInteraction(controller, drawingEngine);
         simulationManager = new AutomataViewSimulation(controller);
         fileOps = new AutomataViewFileOps(stage, controller);
+    }
 
-        // Callbacks
+    private void configurarCallbacks() {
         interactionHandler.setOnStatusChange(this::redibujar);
         simulationManager.setRedrawCallback(this::redibujar);
         fileOps.setOnAutomataLoaded(this::onAutomataLoaded);
         fileOps.setOnAutomataReset(this::onAutomataReset);
-
-        // Stepper
-        uiBuilder.crearStepperVisual(stepBoxes);
     }
-
-    // ======================== EVENT HANDLERS ========================
 
     private void onCanvasMouseClicked(double x, double y) {
         if (modoCrearEstado) {
             crearEstadoEnCanvas(x, y);
             return;
         }
+        manejarSeleccionEstado(x, y);
+    }
+
+    private void manejarSeleccionEstado(double x, double y) {
         String estado = interactionHandler.seleccionarEstadoEnCanvas(x, y);
-        if (estado != null) {
-            estadoSeleccionadoCanvas = estado;
-            mostrarInfoEstado("Estado seleccionado: " + estado);
-            redibujar();
-        } else {
-            // Deseleccionar si se hace click en el vacío
-            if (estadoSeleccionadoCanvas != null) {
-                estadoSeleccionadoCanvas = null;
-                redibujar();
-            }
+        if (estado == null) {
+            limpiarSeleccionCanvas();
+            return;
         }
+        estadoSeleccionadoCanvas = estado;
+        mostrarInfoEstado("Estado seleccionado: " + estado);
+        redibujar();
+    }
+
+    private void limpiarSeleccionCanvas() {
+        if (estadoSeleccionadoCanvas == null) {
+            return;
+        }
+        estadoSeleccionadoCanvas = null;
+        redibujar();
     }
 
     private void onCanvasMousePressed(double x, double y) {
-        if (modoCrearEstado || estadoEnCreacion != null) return;
-        
-        var estado = interactionHandler.encontrarEstadoEnPosicion(x, y);
-        if (estado != null) {
-            estadoArrastrandose = estado.getNombre();
-            ultimaXMouse = x;
-            ultimaYMouse = y;
+        if (modoCrearEstado) {
+            return;
         }
+        var estado = interactionHandler.encontrarEstadoEnPosicion(x, y);
+        if (estado == null) {
+            return;
+        }
+        estadoArrastrandose = estado.getNombre();
+        ultimaXMouse = x;
+        ultimaYMouse = y;
     }
 
     private void onCanvasMouseDragged(double x, double y) {
-        if (estadoArrastrandose == null) return;
-        
-        var estado = controller.getAutomataActual().getEstados().stream()
-            .filter(e -> e.getNombre().equals(estadoArrastrandose))
-            .findFirst();
-        
-        if (estado.isPresent()) {
-            double deltaX = (x - ultimaXMouse) / drawingEngine.getEscala();
-            double deltaY = (y - ultimaYMouse) / drawingEngine.getEscala();
-            
-            double nuevaX = Math.max(46, Math.min(900 - 46, estado.get().getX() + deltaX));
-            double nuevaY = Math.max(46, Math.min(620 - 46, estado.get().getY() + deltaY));
-            
-            estado.get().setX(nuevaX);
-            estado.get().setY(nuevaY);
-            
-            ultimaXMouse = x;
-            ultimaYMouse = y;
-            redibujar();
+        if (estadoArrastrandose == null) {
+            return;
         }
+        var estado = buscarEstadoArrastrado();
+        estado.ifPresent(value -> moverEstado(value, x, y));
+    }
+
+    private java.util.Optional<co.edu.uptc.simuladorautomatas.model.Estado> buscarEstadoArrastrado() {
+        return controller.getAutomataActual().getEstados().stream()
+                .filter(e -> e.getNombre().equals(estadoArrastrandose))
+                .findFirst();
+    }
+
+    private void moverEstado(co.edu.uptc.simuladorautomatas.model.Estado estado, double x, double y) {
+        double deltaX = (x - ultimaXMouse) / drawingEngine.getEscala();
+        double deltaY = (y - ultimaYMouse) / drawingEngine.getEscala();
+        estado.setX(limitar(estado.getX() + deltaX, MARGEN_ESTADO, CANVAS_WIDTH - MARGEN_ESTADO));
+        estado.setY(limitar(estado.getY() + deltaY, MARGEN_ESTADO, CANVAS_HEIGHT - MARGEN_ESTADO));
+        ultimaXMouse = x;
+        ultimaYMouse = y;
+        redibujar();
+    }
+
+    private double limitar(double valor, double min, double max) {
+        return Math.max(min, Math.min(max, valor));
     }
 
     private void onCanvasMouseReleased() {
-        if (estadoArrastrandose != null) {
-            mostrarInfoEstado("Estado '" + estadoArrastrandose + "' movido");
-            estadoArrastrandose = null;
+        if (estadoArrastrandose == null) {
+            return;
         }
+        mostrarInfoEstado("Estado '" + estadoArrastrandose + "' movido");
+        estadoArrastrandose = null;
     }
-
-    // ======================== AUTOMATA OPERATIONS ========================
 
     private void crearNuevoAutomata() {
         try {
-            String alfabetoText = alfabetoField.getText().trim();
-            if (alfabetoText.isEmpty()) {
-                mostrarErrorEstado("Ingrese al menos un símbolo en el alfabeto (ej: a,b)");
-                return;
-            }
-            
-            List<String> alfabeto = Arrays.stream(alfabetoText.split(","))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toList());
-            
-            if (alfabeto.isEmpty()) {
-                mostrarErrorEstado("Ingrese al menos un símbolo en el alfabeto (ej: a,b)");
-                return;
-            }
-            
+            List<String> alfabeto = construirAlfabeto();
             controller.nuevoAutomata(tipoCombo.getValue(), alfabeto);
             simulationManager.detenerSimulacion();
-            redibujar();
-            mostrarInfoEstado("Autómata " + tipoCombo.getValue() + " creado. Agregue estados con el toolbar.");
-            uiBuilder.mostrarPanelPruebas(panelConfiguracion, panelPruebas);
-            marcarPasoCompleto(1);
+            mostrarAutmataCreado();
         } catch (Exception ex) {
             mostrarErrorEstado("Error: " + ex.getMessage());
         }
+    }
+
+    private List<String> construirAlfabeto() {
+        String alfabetoText = alfabetoField.getText().trim();
+        if (alfabetoText.isEmpty()) {
+            throw new IllegalArgumentException("Ingrese al menos un símbolo en el alfabeto (ej: a,b)");
+        }
+        List<String> alfabeto = Arrays.stream(alfabetoText.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+        if (alfabeto.isEmpty()) {
+            throw new IllegalArgumentException("Ingrese al menos un símbolo en el alfabeto (ej: a,b)");
+        }
+        return alfabeto;
+    }
+
+    private void mostrarAutmataCreado() {
+        redibujar();
+        mostrarInfoEstado("Autómata " + tipoCombo.getValue() + " creado. Agregue estados con el toolbar.");
+        uiBuilder.mostrarPanelPruebas(panelConfiguracion, panelPruebas);
+        marcarPasoCompleto(1);
     }
 
     private void activarModoCreacionEstado() {
@@ -304,43 +337,61 @@ public class AutomataView {
             mostrarErrorEstado("Ingrese el nombre del estado antes de hacer click");
             return;
         }
+        crearEstadoYActualizarVista(nombreEstado, x, y);
+    }
+
+    private void crearEstadoYActualizarVista(String nombreEstado, double x, double y) {
         try {
             interactionHandler.crearEstadoEnPosicion(
-                nombreEstado, 
-                interactionHandler.isEstadoEnCreacionInicial(), 
-                interactionHandler.isEstadoEnCreacionAceptacion(), 
-                x, y);
-            modoCrearEstado = false;
-            estadoSeleccionadoCanvas = nombreEstado;
-            interactionHandler.limpiarEstadoEnCreacion();
-            redibujar();
-            marcarPasoCompleto(2);
-            mostrarInfoEstado("Estado '" + nombreEstado + "' creado");
+                    nombreEstado,
+                    interactionHandler.isEstadoEnCreacionInicial(),
+                    interactionHandler.isEstadoEnCreacionAceptacion(),
+                    x,
+                    y
+            );
+            finalizarCreacionEstado(nombreEstado);
         } catch (Exception ex) {
             mostrarErrorEstado(ex.getMessage());
         }
     }
 
-    // ======================== EVALUATION ========================
+    private void finalizarCreacionEstado(String nombreEstado) {
+        modoCrearEstado = false;
+        estadoSeleccionadoCanvas = nombreEstado;
+        interactionHandler.limpiarEstadoEnCreacion();
+        redibujar();
+        marcarPasoCompleto(2);
+        mostrarInfoEstado("Estado '" + nombreEstado + "' creado");
+    }
 
     private void evaluarPalabras() {
         try {
             List<EvaluacionCadenaResultado> resultados = simulationManager.evaluarPalabras(palabrasArea.getText());
-            resultadosLoteList.getItems().setAll(resultados);
-            
-            if (!resultados.isEmpty()) {
-                resultadosLoteList.getSelectionModel().select(0);
-            }
-
-            long aceptadas = resultados.stream().filter(EvaluacionCadenaResultado::isAceptada).count();
-            estadoProcesoLabel.getStyleClass().removeAll("status-ok", "status-error");
-            estadoProcesoLabel.getStyleClass().add("status-ok");
-            estadoProcesoLabel.setText("Evaluadas " + resultados.size() + " cadenas. " + aceptadas
-                    + " aceptadas. Seleccione una para ver paso a paso.");
-            marcarPasoCompleto(4);
+            actualizarResultadosEvaluacion(resultados);
         } catch (Exception ex) {
             mostrarErrorEstado(ex.getMessage());
         }
+    }
+
+    private void actualizarResultadosEvaluacion(List<EvaluacionCadenaResultado> resultados) {
+        resultadosLoteList.getItems().setAll(resultados);
+        seleccionarPrimerResultado(resultados);
+        long aceptadas = resultados.stream().filter(EvaluacionCadenaResultado::isAceptada).count();
+        mostrarMensajeEvaluacion(resultados.size(), aceptadas);
+        marcarPasoCompleto(4);
+    }
+
+    private void seleccionarPrimerResultado(List<EvaluacionCadenaResultado> resultados) {
+        if (!resultados.isEmpty()) {
+            resultadosLoteList.getSelectionModel().select(0);
+        }
+    }
+
+    private void mostrarMensajeEvaluacion(int total, long aceptadas) {
+        limpiarEstilosEstadoProceso();
+        estadoProcesoLabel.getStyleClass().add("status-ok");
+        estadoProcesoLabel.setText("Evaluadas " + total + " cadenas. " + aceptadas
+                + " aceptadas. Seleccione una para ver paso a paso.");
     }
 
     private void reproducirCadenaSeleccionadaLote() {
@@ -349,10 +400,13 @@ public class AutomataView {
             mostrarErrorEstado("Seleccione una cadena para ver su paso a paso");
             return;
         }
+        iniciarReproduccionSeleccionada(seleccionado);
+    }
 
+    private void iniciarReproduccionSeleccionada(EvaluacionCadenaResultado seleccionado) {
         simulationManager.iniciarSimulacion(seleccionado);
         String valorCadena = seleccionado.getCadena().isEmpty() ? "ε" : seleccionado.getCadena();
-        estadoProcesoLabel.getStyleClass().removeAll("status-ok", "status-error");
+        limpiarEstilosEstadoProceso();
         estadoProcesoLabel.getStyleClass().add(seleccionado.isAceptada() ? "status-ok" : "status-error");
         estadoProcesoLabel.setText("Cadena: " + valorCadena + " -> " + seleccionado.getEstadoTexto());
         btnSiguientePaso.setDisable(false);
@@ -370,19 +424,15 @@ public class AutomataView {
         redibujar();
     }
 
-    // ======================== DRAWING ========================
-
     private void redibujar() {
         drawingEngine.redibujar(
-            controller.getAutomataActual(),
-            estadoSeleccionadoCanvas,
-            simulationManager.getEstadosResaltados(),
-            simulationManager.getEstadosFinales(),
-            simulationManager.getUltimoResultado()
+                controller.getAutomataActual(),
+                estadoSeleccionadoCanvas,
+                simulationManager.getEstadosResaltados(),
+                simulationManager.getEstadosFinales(),
+                simulationManager.getUltimoResultado()
         );
     }
-
-    // ======================== UI HELPERS ========================
 
     private void mostrarInfoEstado(String mensaje) {
         estadoProcesoLabel.setText(mensaje);
@@ -394,6 +444,10 @@ public class AutomataView {
         estadoProcesoLabel.setText(mensaje);
         estadoProcesoLabel.getStyleClass().removeAll("status-ok");
         estadoProcesoLabel.getStyleClass().add("status-error");
+    }
+
+    private void limpiarEstilosEstadoProceso() {
+        estadoProcesoLabel.getStyleClass().removeAll("status-ok", "status-error");
     }
 
     private void agregarEpsilon() {
@@ -410,28 +464,37 @@ public class AutomataView {
     }
 
     private void marcarPasoCompleto(int paso) {
-        if (stepBoxes != null && paso >= 1 && paso <= stepBoxes.length && stepBoxes[paso - 1] != null) {
-            VBox stepBox = stepBoxes[paso - 1];
-            stepBox.getStyleClass().add("completed");
-            
-            if (stepBox.getChildren().size() > 0 && stepBox.getChildren().get(0) instanceof Label) {
-                Label num = (Label) stepBox.getChildren().get(0);
-                num.getStyleClass().removeAll("active");
-                num.getStyleClass().add("completed-number");
-            }
-            
-            if (paso < stepBoxes.length && stepBoxes[paso] != null) {
-                VBox nextStep = stepBoxes[paso];
-                nextStep.getStyleClass().add("active");
-                if (nextStep.getChildren().size() > 0 && nextStep.getChildren().get(0) instanceof Label) {
-                    Label nextNum = (Label) nextStep.getChildren().get(0);
-                    nextNum.getStyleClass().add("active");
-                }
-            }
+        if (!esPasoValido(paso)) {
+            return;
         }
+        marcarPasoActual(paso);
+        activarPasoSiguiente(paso);
     }
 
-    // ======================== FILE OPERATIONS CALLBACKS ========================
+    private boolean esPasoValido(int paso) {
+        return stepBoxes != null && paso >= 1 && paso <= stepBoxes.length && stepBoxes[paso - 1] != null;
+    }
+
+    private void marcarPasoActual(int paso) {
+        VBox stepBox = stepBoxes[paso - 1];
+        stepBox.getStyleClass().add("completed");
+        if (!(stepBox.getChildren().get(0) instanceof Label num)) {
+            return;
+        }
+        num.getStyleClass().removeAll("active");
+        num.getStyleClass().add("completed-number");
+    }
+
+    private void activarPasoSiguiente(int paso) {
+        if (paso >= stepBoxes.length || stepBoxes[paso] == null) {
+            return;
+        }
+        VBox nextStep = stepBoxes[paso];
+        nextStep.getStyleClass().add("active");
+        if (nextStep.getChildren().get(0) instanceof Label nextNum) {
+            nextNum.getStyleClass().add("active");
+        }
+    }
 
     private void onAutomataLoaded() {
         var automata = controller.getAutomataActual();

@@ -1,5 +1,8 @@
 package co.edu.uptc.simuladorautomatas.persistence;
 
+import co.edu.uptc.simuladorautomatas.Dto.AutomataDto;
+import co.edu.uptc.simuladorautomatas.Dto.EstadoDto;
+import co.edu.uptc.simuladorautomatas.Dto.TransicionDto;
 import co.edu.uptc.simuladorautomatas.model.Automata;
 import co.edu.uptc.simuladorautomatas.model.Estado;
 import co.edu.uptc.simuladorautomatas.model.SimbolosAutomata;
@@ -13,7 +16,6 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +47,7 @@ public class AutomataJsonRepository {
     private AutomataDto toDto(Automata automata) {
         AutomataDto dto = new AutomataDto();
         dto.tipo = automata.getTipo().name();
-        dto.alfabeto = new ArrayList<>(automata.getAlfabeto());
+        dto.alfabeto = List.copyOf(automata.getAlfabeto());
         dto.estados = automata.getEstados().stream().map(e -> {
             EstadoDto estadoDto = new EstadoDto();
             estadoDto.nombre = e.getNombre();
@@ -90,27 +92,6 @@ public class AutomataJsonRepository {
             }
         }
         return automata;
-    }
-
-    private static class AutomataDto {
-        String tipo;
-        List<String> alfabeto;
-        List<EstadoDto> estados;
-        List<TransicionDto> transiciones;
-    }
-
-    private static class EstadoDto {
-        String nombre;
-        boolean esInicial;
-        boolean esAceptacion;
-        double x;
-        double y;
-    }
-
-    private static class TransicionDto {
-        String origen;
-        String simbolo;
-        String destino;
     }
 }
 
