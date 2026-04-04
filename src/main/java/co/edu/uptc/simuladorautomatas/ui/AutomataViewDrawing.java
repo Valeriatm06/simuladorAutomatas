@@ -4,7 +4,10 @@ import co.edu.uptc.simuladorautomatas.model.Automata;
 import co.edu.uptc.simuladorautomatas.model.Estado;
 import co.edu.uptc.simuladorautomatas.model.SimbolosAutomata;
 import co.edu.uptc.simuladorautomatas.model.Transicion;
+import javafx.scene.Cursor;
+import javafx.scene.Group;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
@@ -13,7 +16,7 @@ import javafx.scene.shape.QuadCurve;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
-import javafx.scene.layout.StackPane;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -23,6 +26,7 @@ import java.util.Set;
 
 /**
  * Motor de dibujado: Responsable de renderizar estados, transiciones y etiquetas en el canvas.
+ * Refactorizado para usar el máximo potencial de JavaFX (Grupos, Capas y Drag dinámico).
  */
 public class AutomataViewDrawing {
     private static final double RADIO_ESTADO = 30;
@@ -33,62 +37,93 @@ public class AutomataViewDrawing {
     private final List<double[]> zonasEtiquetasTransicion = new ArrayList<>();
     private double escala = 1.0;
 
+    // CAPAS DE RENDERIZADO: Permiten redibujar flechas sin destruir los estados
+    private final Group capaTransiciones = new Group();
+    private final Group capaEstados = new Group();
+    
+    // CACHÉ DE REFERENCIA: Para poder redibujar las líneas en tiempo real mientras se arrastra
+    private Automata automataActual;
+
     public AutomataViewDrawing(Pane panelDibujo) {
         this.panelDibujo = panelDibujo;
     }
 
     public void redibujar(Automata automata, String estadoSeleccionado,
-                         Set<String> estadosResaltados, Set<String> estadosFinales,
-                         Boolean ultimoResultadoAceptado) {
-        panelDibujo.getChildren().clear();
-        zonasEtiquetasTransicion.clear();
+                          Set<String> estadosResaltados, Set<String> estadosFinales,
+                          Boolean ultimoResultadoAceptado) {
+        this.automataActual = automata;
+        
+        // Configuramos las capas por primera vez o reemplazamos el contenido anterior
+        panelDibujo.getChildren().setAll(capaTransiciones, capaEstados);
+        capaEstados.getChildren().clear();
+
         calcularEscala();
 
-        for (Map.Entry<AristaKey, String> entrada : agruparTransiciones(automata.getTransiciones()).entrySet()) {
-            AristaKey arista = entrada.getKey();
-            dibujarTransicion(arista.origen, arista.destino, entrada.getValue());
-        }
+        // 1. Dibujamos los estados en su capa superior
         for (Estado estado : automata.getEstados()) {
             dibujarEstado(estado, estadoSeleccionado, estadosResaltados, estadosFinales, ultimoResultadoAceptado);
+        }
+
+        // 2. Dibujamos las transiciones en la capa inferior
+        redibujarTransiciones();
+    }
+
+    /**
+     * Extraído para poder llamar solo a la actualización de flechas durante el arrastre (Drag)
+     */
+    private void redibujarTransiciones() {
+        capaTransiciones.getChildren().clear();
+        zonasEtiquetasTransicion.clear();
+        
+        if (automataActual == null) return;
+
+        for (Map.Entry<AristaKey, String> entrada : agruparTransiciones(automataActual.getTransiciones()).entrySet()) {
+            AristaKey arista = entrada.getKey();
+            dibujarTransicion(arista.origen, arista.destino, entrada.getValue());
         }
     }
 
     private void dibujarEstado(Estado estado, String estadoSeleccionado,
-                              Set<String> estadosResaltados, Set<String> estadosFinales,
-                              Boolean ultimoResultadoAceptado) {
+                               Set<String> estadosResaltados, Set<String> estadosFinales,
+                               Boolean ultimoResultadoAceptado) {
         boolean seleccionado = estado.getNombre().equals(estadoSeleccionado);
         boolean resaltado = estadosResaltados.contains(estado.getNombre());
         boolean estadoFinal = estadosFinales.contains(estado.getNombre());
+        
         double x = logicoAVistaX(estado.getX());
         double y = logicoAVistaY(estado.getY());
         double radio = radioEscalado();
 
-        // Halo brillante si está seleccionado
+        // CONTENEDOR MAESTRO: Todo se dibuja relativo al centro (0,0) del grupo
+        Group grupoEstado = new Group();
+        grupoEstado.setLayoutX(x);
+        grupoEstado.setLayoutY(y);
+
         if (seleccionado) {
-            Circle halo = new Circle(x, y, radio + 12, Color.TRANSPARENT);
+            Circle halo = new Circle(0, 0, radio + 12, Color.TRANSPARENT);
             halo.setStroke(Color.web("#2563EB"));
             halo.setStrokeWidth(2.0);
             halo.setStyle("-fx-stroke-dash-array: 4 2;");
-            panelDibujo.getChildren().add(halo);
-
-            Circle brillo = new Circle(x, y, radio + 6, Color.TRANSPARENT);
+            
+            Circle brillo = new Circle(0, 0, radio + 6, Color.TRANSPARENT);
             brillo.setStroke(Color.web("rgba(37, 99, 235, 0.3)"));
             brillo.setStrokeWidth(3.0);
-            panelDibujo.getChildren().add(brillo);
+            
+            grupoEstado.getChildren().addAll(halo, brillo);
         }
 
         if (resaltado) {
-            Circle haloEvaluacion = new Circle(x, y, radio + 9, Color.TRANSPARENT);
+            Circle haloEvaluacion = new Circle(0, 0, radio + 9, Color.TRANSPARENT);
             haloEvaluacion.setStroke(Color.web("#F59E0B"));
             haloEvaluacion.setStrokeWidth(2.4);
-            panelDibujo.getChildren().add(haloEvaluacion);
+            grupoEstado.getChildren().add(haloEvaluacion);
         }
 
         if (estadoFinal && ultimoResultadoAceptado != null) {
-            Circle haloFinal = new Circle(x, y, radio + 10, Color.TRANSPARENT);
+            Circle haloFinal = new Circle(0, 0, radio + 10, Color.TRANSPARENT);
             haloFinal.setStroke(ultimoResultadoAceptado ? Color.web("#16A34A") : Color.web("#DC2626"));
             haloFinal.setStrokeWidth(2.8);
-            panelDibujo.getChildren().add(haloFinal);
+            grupoEstado.getChildren().add(haloFinal);
         }
 
         Color colorBase = resaltado ? Color.web("#FEF3C7") : Color.web("#F8FAFC");
@@ -96,7 +131,7 @@ public class AutomataViewDrawing {
             colorBase = ultimoResultadoAceptado ? Color.web("#DCFCE7") : Color.web("#FEE2E2");
         }
         
-        Circle principal = new Circle(x, y, radio, colorBase);
+        Circle principal = new Circle(0, 0, radio, colorBase);
         principal.setStroke(seleccionado ? Color.web("#2563EB") : Color.web("#1F2937"));
         principal.setStrokeWidth(seleccionado ? 3.0 : 1.7);
 
@@ -104,33 +139,71 @@ public class AutomataViewDrawing {
             principal.setFill(resaltado ? Color.web("#FDE68A") : Color.web("#E0F2FE"));
         }
 
-        panelDibujo.getChildren().add(principal);
+        grupoEstado.getChildren().add(principal);
 
         if (estado.isEsAceptacion()) {
-            Circle interno = new Circle(x, y, radio - 6, Color.TRANSPARENT);
+            Circle interno = new Circle(0, 0, radio - 6, Color.TRANSPARENT);
             interno.setStroke(seleccionado ? Color.web("#2563EB") : Color.web("#059669"));
             interno.setStrokeWidth(1.8);
-            panelDibujo.getChildren().add(interno);
+            grupoEstado.getChildren().add(interno);
         }
 
         if (estado.isEsInicial()) {
-            Line flecha = new Line(x - (radio + 32), y, x - radio, y);
+            Line flecha = new Line(-(radio + 32), 0, -radio, 0);
             flecha.setStroke(Color.web("#0F172A"));
             Polygon punta = new Polygon(
-                    x - radio, y,
-                    x - radio - 11, y - 6,
-                    x - radio - 11, y + 6
+                    -radio, 0,
+                    -radio - 11, -6,
+                    -radio - 11, 6
             );
             punta.setFill(Color.web("#0F172A"));
-            panelDibujo.getChildren().addAll(flecha, punta);
+            grupoEstado.getChildren().addAll(flecha, punta);
         }
 
         Text texto = new Text(estado.getNombre());
         texto.setFont(Font.font(14));
         texto.setFill(Color.web("#0F172A"));
-        texto.setX(x - (texto.getLayoutBounds().getWidth() / 2));
-        texto.setY(y + 4);
-        panelDibujo.getChildren().add(texto);
+        // Centrado del texto relativo al 0,0
+        texto.setX(-texto.getLayoutBounds().getWidth() / 2);
+        texto.setY(4);
+        grupoEstado.getChildren().add(texto);
+
+        // --- SISTEMA DE ARRASTRE (DRAG & DROP DINÁMICO) ---
+        final double[] dragOffset = new double[2];
+
+        grupoEstado.setOnMousePressed(e -> {
+            dragOffset[0] = e.getSceneX() - grupoEstado.getLayoutX();
+            dragOffset[1] = e.getSceneY() - grupoEstado.getLayoutY();
+            grupoEstado.getScene().setCursor(Cursor.CLOSED_HAND);
+            e.consume();
+        });
+
+        grupoEstado.setOnMouseDragged(e -> {
+            double nuevoLayoutX = e.getSceneX() - dragOffset[0];
+            double nuevoLayoutY = e.getSceneY() - dragOffset[1];
+
+            // 1. Movemos visualmente el grupo
+            grupoEstado.setLayoutX(nuevoLayoutX);
+            grupoEstado.setLayoutY(nuevoLayoutY);
+
+            // 2. Actualizamos el modelo real con las nuevas coordenadas lógicas
+            estado.setX(vistaALogicoX(nuevoLayoutX));
+            estado.setY(vistaALogicoY(nuevoLayoutY));
+
+            // 3. Redibujamos SOLO las flechas para que sigan al nodo mágicamente
+            redibujarTransiciones();
+            e.consume();
+        });
+
+        grupoEstado.setOnMouseReleased(e -> grupoEstado.getScene().setCursor(Cursor.HAND));
+        grupoEstado.setOnMouseEntered(e -> {
+            if (!e.isPrimaryButtonDown()) panelDibujo.getScene().setCursor(Cursor.HAND);
+        });
+        grupoEstado.setOnMouseExited(e -> {
+            if (!e.isPrimaryButtonDown()) panelDibujo.getScene().setCursor(Cursor.DEFAULT);
+        });
+
+        capaEstados.getChildren().add(grupoEstado);
     }
 
     private void dibujarTransicion(Estado origen, Estado destino, String etiquetaSimbolos) {
@@ -139,43 +212,92 @@ public class AutomataViewDrawing {
         double oy = logicoAVistaY(origen.getY());
         double dx = logicoAVistaX(destino.getX());
         double dy = logicoAVistaY(destino.getY());
+        Color colorStroke = Color.web("#334155");
 
         if (origen.equals(destino)) {
-            Circle loop = new Circle(ox, oy - radio - 18, 16, Color.TRANSPARENT);
-            loop.setStroke(Color.web("#334155"));
+            // --- TRANSICIÓN BUCLE (SELF-LOOP) MÁS PEQUEÑA ---
+            // Ángulos más cerrados hacia arriba para que la base del bucle sea más angosta
+            double anguloSalida = Math.toRadians(-115); 
+            double anguloEntrada = Math.toRadians(-65);
+
+            double startX = ox + radio * Math.cos(anguloSalida);
+            double startY = oy + radio * Math.sin(anguloSalida);
+            double endX = ox + radio * Math.cos(anguloEntrada);
+            double endY = oy + radio * Math.sin(anguloEntrada);
+
+            // Reducimos drásticamente la altura y la anchura del lazo
+            double alturaLazo = radio * 1.8; // Antes era 3.5
+            double anchuraLazo = radio * 0.8; // Antes era 1.5
+            
+            double c1X = startX - anchuraLazo;
+            double c1Y = startY - alturaLazo;
+            
+            double c2X = endX + anchuraLazo;
+            double c2Y = endY - alturaLazo;
+
+            javafx.scene.shape.CubicCurve loop = new javafx.scene.shape.CubicCurve(
+                    startX, startY, c1X, c1Y, c2X, c2Y, endX, endY);
+            loop.setFill(Color.TRANSPARENT);
+            loop.setStroke(colorStroke);
             loop.setStrokeWidth(1.6);
+
+            double arrDirX = endX - c2X;
+            double arrDirY = endY - c2Y;
+            double arrLen = Math.hypot(arrDirX, arrDirY);
+            double tux = arrDirX / arrLen;
+            double tuy = arrDirY / arrLen;
+
+            Polygon flecha = new Polygon(
+                    endX, endY,
+                    endX - tux * 12 - tuy * 6, endY - tuy * 12 + tux * 6,
+                    endX - tux * 12 + tuy * 6, endY - tuy * 12 - tux * 6
+            );
+            flecha.setFill(colorStroke);
+
             Text etiqueta = new Text(etiquetaSimbolos);
             etiqueta.setFont(Font.font(13));
             double textoW = etiqueta.getLayoutBounds().getWidth();
             double textoH = etiqueta.getLayoutBounds().getHeight();
-            double[] pos = ajustarPosicionEtiqueta(ox, oy - radio - 38, textoW, textoH, 0, -1);
+            
+            // Ajustamos también la posición de la etiqueta para que baje junto con el bucle
+            double[] pos = ajustarPosicionEtiqueta(ox, oy - alturaLazo + (radio * 0.3), textoW, textoH, 0, -1);
             StackPane chip = crearChipEtiqueta(etiqueta, pos[0], pos[1]);
-            panelDibujo.getChildren().addAll(loop, chip);
+            
+            capaTransiciones.getChildren().addAll(loop, flecha, chip);
             return;
         }
 
+        // --- TRANSICIÓN CURVA ENTRE DOS ESTADOS ---
         double deltaX = dx - ox;
         double deltaY = dy - oy;
-        double longitud = Math.hypot(deltaX, deltaY);
-        if (longitud == 0) return;
+        double distCentroACentro = Math.hypot(deltaX, deltaY);
+        if (distCentroACentro == 0) return;
 
-        double ux = deltaX / longitud;
-        double uy = deltaY / longitud;
-        double px = -uy;
-        double py = ux;
+        double nx = deltaX / distCentroACentro;
+        double ny = deltaY / distCentroACentro;
+        
+        double px = -ny;
+        double py = nx;
 
-        double inicioX = ox + ux * radio;
-        double inicioY = oy + uy * radio;
-        double finX = dx - ux * radio;
-        double finY = dy - uy * radio;
+        double curvatura = 18 + Math.min(26, distCentroACentro * 0.07);
+        double controlX = (ox + dx) / 2 + px * curvatura;
+        double controlY = (oy + dy) / 2 + py * curvatura;
 
-        double curvatura = 18 + Math.min(26, longitud * 0.07);
-        double controlX = (inicioX + finX) / 2 + px * curvatura;
-        double controlY = (inicioY + finY) / 2 + py * curvatura;
+        double vecInicioX = controlX - ox;
+        double vecInicioY = controlY - oy;
+        double distInicio = Math.hypot(vecInicioX, vecInicioY);
+        double inicioX = ox + (vecInicioX / distInicio) * radio;
+        double inicioY = oy + (vecInicioY / distInicio) * radio;
 
-        QuadCurve curva = new QuadCurve(inicioX, inicioY, controlX, controlY, finX, finY);
+        double vecFinX = controlX - dx;
+        double vecFinY = controlY - dy;
+        double distFin = Math.hypot(vecFinX, vecFinY);
+        double finX = dx + (vecFinX / distFin) * radio;
+        double finY = dy + (vecFinY / distFin) * radio;
+
+        javafx.scene.shape.QuadCurve curva = new javafx.scene.shape.QuadCurve(inicioX, inicioY, controlX, controlY, finX, finY);
         curva.setFill(Color.TRANSPARENT);
-        curva.setStroke(Color.web("#334155"));
+        curva.setStroke(colorStroke);
         curva.setStrokeWidth(1.7);
 
         double tx = finX - controlX;
@@ -188,10 +310,10 @@ public class AutomataViewDrawing {
 
         Polygon punta = new Polygon(
                 finX, finY,
-                finX - tux * 14 - tuy * 8, finY - tuy * 14 + tux * 8,
-                finX - tux * 14 + tuy * 8, finY - tuy * 14 - tux * 8
+                finX - tux * 12 - tuy * 6, finY - tuy * 12 + tux * 6,
+                finX - tux * 12 + tuy * 6, finY - tuy * 12 - tux * 6
         );
-        punta.setFill(Color.web("#334155"));
+        punta.setFill(colorStroke);
 
         Text etiqueta = new Text(etiquetaSimbolos);
         etiqueta.setFont(Font.font(13));
@@ -200,15 +322,16 @@ public class AutomataViewDrawing {
 
         double medioX = (inicioX + (2 * controlX) + finX) / 4.0;
         double medioY = (inicioY + (2 * controlY) + finY) / 4.0;
-        double etiquetaOffset = Math.max(14.0, radio * 0.45);
+        double etiquetaOffset = 18.0; 
         double baseEtiquetaX = medioX + (px * etiquetaOffset);
         double baseEtiquetaY = medioY + (py * etiquetaOffset);
+        
         double[] pos = ajustarPosicionEtiqueta(baseEtiquetaX, baseEtiquetaY, textoW, textoH, px, py);
         StackPane chip = crearChipEtiqueta(etiqueta, pos[0], pos[1]);
 
-        panelDibujo.getChildren().addAll(curva, punta, chip);
+        capaTransiciones.getChildren().addAll(curva, punta, chip);
     }
-
+        
     private Map<AristaKey, String> agruparTransiciones(List<Transicion> transiciones) {
         Map<AristaKey, LinkedHashSet<String>> agrupadas = new LinkedHashMap<>();
         for (Transicion transicion : transiciones) {
