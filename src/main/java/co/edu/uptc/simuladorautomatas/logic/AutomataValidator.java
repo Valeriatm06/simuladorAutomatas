@@ -64,19 +64,15 @@ public class AutomataValidator {
 
 
     private void validarDeterminismo(Automata automata) {
-        validarCeroAmbiguedad(automata);
+        validarAmbiguedad(automata);
         validarCompletitud(automata);
     }
 
-    private void validarCeroAmbiguedad(Automata automata) {
+    private void validarAmbiguedad(Automata automata) {
         Set<String> firmasDeTransicion = new HashSet<>();
 
         for (Transicion transicion : automata.getTransiciones()) {
             String simbolo = transicion.getSimbolo();
-
-            if (SimbolosAutomata.esEpsilon(simbolo)) {
-                throw new IllegalStateException("DFA invalido: no se permiten transiciones epsilon/lambda");
-            }
 
             String firmaUnica = transicion.getEstadoOrigen().getNombre() + "|" + simbolo;
             if (!firmasDeTransicion.add(firmaUnica)) {
