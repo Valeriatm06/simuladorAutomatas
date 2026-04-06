@@ -3,7 +3,6 @@ package co.edu.uptc.simuladorautomatas.ui;
 import co.edu.uptc.simuladorautomatas.controller.AutomataController;
 import co.edu.uptc.simuladorautomatas.logic.EvaluacionCadenaResultado;
 import co.edu.uptc.simuladorautomatas.logic.PasoEvaluacion;
-import co.edu.uptc.simuladorautomatas.model.SimbolosAutomata;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
 import java.util.ArrayList;
@@ -44,7 +43,6 @@ public class AutomataViewSimulation {
         List<String> entradas = Arrays.stream(textoPalabras.split("\\R"))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
-                .map(SimbolosAutomata::normalizarCadenaEntrada)
                 .collect(Collectors.toList());
 
         if (entradas.isEmpty()) {
@@ -71,6 +69,11 @@ public class AutomataViewSimulation {
         estadosResaltadosEvaluacion.clear();
         estadosFinalesEvaluacion.clear();
         estadosResaltadosEvaluacion.addAll(resultado.getEstadosIniciales());
+
+        if (resultado.getPasos().isEmpty()) {
+            aplicarResultadoFinal(null);
+            return;
+        }
         
         if (onRedraw != null) {
             onRedraw.run();
@@ -93,9 +96,11 @@ public class AutomataViewSimulation {
             onRedraw.run();
         }
         
-        if (!simulacionActual.getPasos().isEmpty()) {
-            programarSiguientePaso();
+        if (simulacionActual.getPasos().isEmpty()) {
+            aplicarResultadoFinal(null);
+            return;
         }
+        programarSiguientePaso();
     }
 
     public void avanzarManual() {

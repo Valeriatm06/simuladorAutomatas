@@ -2,6 +2,7 @@ package co.edu.uptc.simuladorautomatas.ui;
 
 import co.edu.uptc.simuladorautomatas.controller.AutomataController;
 import co.edu.uptc.simuladorautomatas.logic.EvaluacionCadenaResultado;
+import co.edu.uptc.simuladorautomatas.logic.PasoEvaluacion;
 import co.edu.uptc.simuladorautomatas.model.TipoAutomata;
 import javafx.animation.FadeTransition;
 import javafx.geometry.Insets;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
  * Vista principal del simulador de automatas.
  */
 public class AutomataView {
+    private static final String EPSILON_VISUAL = "ε";
     private static final double CANVAS_WIDTH = 900;
     private static final double CANVAS_HEIGHT = 620;
     private static final double MARGEN_ESTADO = 46;
@@ -197,9 +199,14 @@ public class AutomataView {
 
     private void configurarCallbacks() {
         interactionHandler.setOnStatusChange(this::redibujar);
-        simulationManager.setRedrawCallback(this::redibujar);
+        simulationManager.setRedrawCallback(this::onSimulationFrameChanged);
         fileOps.setOnAutomataLoaded(this::onAutomataLoaded);
         fileOps.setOnAutomataReset(this::onAutomataReset);
+    }
+
+    private void onSimulationFrameChanged() {
+        redibujar();
+        actualizarEstadoPasoAPaso();
     }
 
     private void onCanvasMouseClicked(double x, double y) {
@@ -405,23 +412,84 @@ public class AutomataView {
 
     private void iniciarReproduccionSeleccionada(EvaluacionCadenaResultado seleccionado) {
         simulationManager.iniciarSimulacion(seleccionado);
-        String valorCadena = seleccionado.getCadena().isEmpty() ? "ε" : seleccionado.getCadena();
-        limpiarEstilosEstadoProceso();
-        estadoProcesoLabel.getStyleClass().add(seleccionado.isAceptada() ? "status-ok" : "status-error");
-        estadoProcesoLabel.setText("Cadena: " + valorCadena + " -> " + seleccionado.getEstadoTexto());
         btnSiguientePaso.setDisable(false);
         btnReproducir.setDisable(false);
+        actualizarEstadoPasoAPaso();
         redibujar();
     }
 
     private void avanzarSimulacionManual() {
         simulationManager.avanzarManual();
+        actualizarEstadoPasoAPaso();
         redibujar();
     }
 
     private void reproducirDesdeInicio() {
         simulationManager.reproducirDesdeInicio();
+        actualizarEstadoPasoAPaso();
         redibujar();
+    }
+
+    private void actualizarEstadoPasoAPaso() {
+        EvaluacionCadenaResultado simulacion = simulationManager.getSimulacionActual();
+        if (simulacion == null) {
+            return;
+        }
+
+        int indicePaso = simulationManager.getIndicePaso();
+        List<PasoEvaluacion> pasos = simulacion.getPasos();
+        String cadenaMostrada = simulacion.getCadena().isEmpty() ? EPSILON_VISUAL : simulacion.getCadena();
+
+        limpiarEstilosEstadoProceso();
+
+        if (indicePaso < 0) {
+            estadoProcesoLabel.getStyleClass().add("status-ok");
+            estadoProcesoLabel.setText("Cadena: " + cadenaMostrada + " | Inicio en "
+                    + formatearConjuntoEstados(simulacion.getEstadosIniciales()));
+            return;
+        }
+
+        PasoEvaluacion paso = pasos.get(indicePaso);
+        String simbolo = formatearSimboloPaso(paso.getSimbolo());
+        String origen = formatearConjuntoEstados(paso.getEstadosOrigen());
+        String destino = formatearConjuntoEstados(paso.getEstadosDestino());
+
+        boolean pasoFinal = indicePaso >= pasos.size() - 1;
+        if (pasoFinal && simulationManager.getUltimoResultado() != null) {
+            boolean aceptada = simulationManager.getUltimoResultado();
+            estadoProcesoLabel.getStyleClass().add(aceptada ? "status-ok" : "status-error");
+            estadoProcesoLabel.setText("Cadena: " + cadenaMostrada
+                    + " | Paso " + (indicePaso + 1)
+                    + ": (" + origen + ", " + simbolo + ") -> " + destino
+                    + " | " + (aceptada ? "ACEPTADA" : "RECHAZADA"));
+            return;
+        }
+
+        estadoProcesoLabel.getStyleClass().add("status-ok");
+        estadoProcesoLabel.setText("Cadena: " + cadenaMostrada
+                + " | Paso " + (indicePaso + 1)
+                + ": (" + origen + ", " + simbolo + ") -> " + destino);
+    }
+
+    private String formatearSimboloPaso(String simbolo) {
+        if (simbolo == null || simbolo.isBlank()) {
+            return EPSILON_VISUAL;
+        }
+        String valor = simbolo.trim();
+        if (valor.equals(EPSILON_VISUAL) || valor.equalsIgnoreCase("epsilon") || valor.equalsIgnoreCase("lambda") || valor.equals("λ")) {
+            return EPSILON_VISUAL;
+        }
+        return valor;
+    }
+
+    private String formatearConjuntoEstados(List<String> estados) {
+        if (estados == null || estados.isEmpty()) {
+            return "{}";
+        }
+        if (estados.size() == 1) {
+            return estados.get(0);
+        }
+        return "{" + String.join(", ", estados) + "}";
     }
 
     private void redibujar() {

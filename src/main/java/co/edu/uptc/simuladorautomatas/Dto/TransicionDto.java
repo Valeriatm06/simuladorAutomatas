@@ -5,4 +5,3 @@ public class TransicionDto {
     public String simbolo;
     public String destino;
 }
-

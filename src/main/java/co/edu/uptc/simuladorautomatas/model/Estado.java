@@ -70,15 +70,5 @@ public class Estado {
         }
         return Objects.equals(nombre, estado.nombre);
     }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(nombre);
-    }
-
-    @Override
-    public String toString() {
-        return nombre;
-    }
 }
 

@@ -34,13 +34,9 @@ public class Transicion {
         return estadoDestino;
     }
 
-    public void setEstadoDestino(Estado estadoDestino) {
-        this.estadoDestino = estadoDestino;
-    }
-
     @Override
     public String toString() {
-        return estadoOrigen + " --" + simbolo + "--> " + estadoDestino;
+        return estadoOrigen + " -dav-" + simbolo + "--> " + estadoDestino;
     }
 }
 

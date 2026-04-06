@@ -12,53 +12,91 @@ import java.util.Set;
 public class AutomataValidator {
 
     public void validar(Automata automata) {
+        validarEstructuraBasica(automata);
+        validarTransicionesYAlfabeto(automata);
+
+        if (automata.getTipo() == TipoAutomata.DFA) {
+            validarDeterminismo(automata);
+        }
+    }
+
+    private void validarEstructuraBasica(Automata automata) {
         if (automata.getEstados().isEmpty()) {
             throw new IllegalStateException("Debe existir al menos un estado");
         }
         if (automata.getEstadoInicial() == null) {
             throw new IllegalStateException("Debe existir un estado inicial");
         }
+    }
+
+    private void validarTransicionesYAlfabeto(Automata automata) {
         Set<String> alfabeto = new HashSet<>(automata.getAlfabeto());
+
         for (Transicion transicion : automata.getTransiciones()) {
-            String simbolo = SimbolosAutomata.normalizarSimboloTransicion(transicion.getSimbolo());
-            transicion.setSimbolo(simbolo);
-            if (SimbolosAutomata.esEpsilon(simbolo)) {
-                if (automata.getTipo() == TipoAutomata.DFA) {
-                    throw new IllegalStateException("DFA invalido: no se permiten transiciones epsilon/lambda");
-                }
+            String simboloNormalizado = prepararSimboloTransicion(transicion);
+
+            if (SimbolosAutomata.esEpsilon(simboloNormalizado)) {
+                validarEpsilonPermitido(automata);
                 continue;
             }
-            if (!alfabeto.contains(simbolo)) {
-                throw new IllegalStateException("La transicion " + transicion + " usa un simbolo fuera del alfabeto");
-            }
-        }
-        if (automata.getTipo() == TipoAutomata.DFA) {
-            validarDeterminismo(automata);
+
+            validarPertenenciaAlfabeto(simboloNormalizado, alfabeto, transicion);
         }
     }
 
+    private String prepararSimboloTransicion(Transicion transicion) {
+        String simbolo = SimbolosAutomata.normalizarSimboloTransicion(transicion.getSimbolo());
+        transicion.setSimbolo(simbolo);
+        return simbolo;
+    }
+
+    private void validarEpsilonPermitido(Automata automata) {
+        if (automata.getTipo() == TipoAutomata.DFA) {
+            throw new IllegalStateException("DFA invalido: no se permiten transiciones epsilon/lambda");
+        }
+    }
+
+    private void validarPertenenciaAlfabeto(String simbolo, Set<String> alfabeto, Transicion transicion) {
+        if (!alfabeto.contains(simbolo)) {
+            throw new IllegalStateException("La transicion " + transicion + " usa un simbolo fuera del alfabeto");
+        }
+    }
+
+
     private void validarDeterminismo(Automata automata) {
-        Set<String> firma = new HashSet<>();
+        validarCeroAmbiguedad(automata);
+        validarCompletitud(automata);
+    }
+
+    private void validarCeroAmbiguedad(Automata automata) {
+        Set<String> firmasDeTransicion = new HashSet<>();
+
         for (Transicion transicion : automata.getTransiciones()) {
-            String simbolo = SimbolosAutomata.normalizarSimboloTransicion(transicion.getSimbolo());
+            String simbolo = transicion.getSimbolo();
+
             if (SimbolosAutomata.esEpsilon(simbolo)) {
                 throw new IllegalStateException("DFA invalido: no se permiten transiciones epsilon/lambda");
             }
-            String llave = transicion.getEstadoOrigen().getNombre() + "|" + simbolo;
-            if (!firma.add(llave)) {
-                throw new IllegalStateException("DFA invalido: existe ambiguedad en " + llave);
+
+            String firmaUnica = transicion.getEstadoOrigen().getNombre() + "|" + simbolo;
+            if (!firmasDeTransicion.add(firmaUnica)) {
+                throw new IllegalStateException("DFA invalido: existe ambiguedad en " + firmaUnica);
             }
         }
+    }
+
+    private void validarCompletitud(Automata automata) {
         for (Estado estado : automata.getEstados()) {
             for (String simbolo : automata.getAlfabeto()) {
-                long cantidad = automata.getTransiciones().stream()
+                long cantidadCaminos = automata.getTransiciones().stream()
                         .filter(t -> t.getEstadoOrigen().equals(estado) && t.getSimbolo().equals(simbolo))
                         .count();
-                if (cantidad != 1) {
-                    throw new IllegalStateException("DFA incompleto: el estado " + estado + " no tiene transicion unica para " + simbolo);
+
+                if (cantidadCaminos != 1) {
+                    throw new IllegalStateException("DFA incompleto: el estado " + estado.getNombre() +
+                            " no tiene transicion unica para '" + simbolo + "'");
                 }
             }
         }
     }
 }
-

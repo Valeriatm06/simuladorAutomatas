@@ -11,10 +11,6 @@ public class EvaluacionCadenaResultado {
     private final List<String> estadosIniciales;
     private final List<PasoEvaluacion> pasos;
 
-    public EvaluacionCadenaResultado(String cadena, boolean aceptada, String traza) {
-        this(cadena, aceptada, traza, List.of(), List.of());
-    }
-
     public EvaluacionCadenaResultado(
             String cadena,
             boolean aceptada,
