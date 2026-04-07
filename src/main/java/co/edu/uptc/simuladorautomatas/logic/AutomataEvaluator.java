@@ -88,8 +88,6 @@ public class AutomataEvaluator {
         return null;
     }
 
-    // Evaluación NFA
-
     private EvaluacionCadenaResultado evaluarNfa(Automata automata, String cadena, boolean incluirTraza) {
         Set<Estado> iniciales = new LinkedHashSet<>();
         iniciales.add(automata.getEstadoInicial());
@@ -102,8 +100,11 @@ public class AutomataEvaluator {
         for (char simbolo : cadena.toCharArray()) {
             String valor = String.valueOf(simbolo);
 
+            // Obtener transiciones individuales para rastrear rutas separadas
+            List<PasoEvaluacion.TransicionIndividual> transicionesIndividuales = moverNfaConDetalles(automata, actuales, valor);
             Set<Estado> siguientes = moverNfa(automata, actuales, valor);
-            pasos.add(new PasoEvaluacion(valor, nombresEstados(actuales), nombresEstados(siguientes)));
+            
+            pasos.add(new PasoEvaluacion(valor, nombresEstados(actuales), nombresEstados(siguientes), transicionesIndividuales));
             registrarTrazaNfa(traza, incluirTraza, actuales, valor, siguientes);
 
             actuales = calcularCierreEpsilon(automata, siguientes, pasos, incluirTraza, traza);
@@ -115,6 +116,25 @@ public class AutomataEvaluator {
 
         boolean aceptada = actuales.stream().anyMatch(Estado::isEsAceptacion);
         return new EvaluacionCadenaResultado(cadena, aceptada, incluirTraza ? traza.toString() : "", estadosIniciales, pasos);
+    }
+
+    private List<PasoEvaluacion.TransicionIndividual> moverNfaConDetalles(Automata automata, Set<Estado> actuales, String valor) {
+        List<PasoEvaluacion.TransicionIndividual> transiciones = new ArrayList<>();
+        int numeroRuta = 0;
+        
+        for (Estado estado : actuales) {
+            for (Transicion transicion : automata.getTransiciones()) {
+                String simboloTransicion = SimbolosAutomata.normalizarSimboloTransicion(transicion.getSimbolo());
+                if (transicion.getEstadoOrigen().equals(estado) && simboloTransicion.equals(valor)) {
+                    transiciones.add(new PasoEvaluacion.TransicionIndividual(
+                            estado.getNombre(),
+                            transicion.getEstadoDestino().getNombre(),
+                            numeroRuta++
+                    ));
+                }
+            }
+        }
+        return transiciones;
     }
 
     private Set<Estado> moverNfa(Automata automata, Set<Estado> actuales, String valor) {

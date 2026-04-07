@@ -42,9 +42,16 @@ public class AutomataViewDrawing {
     
     // CACHÉ DE REFERENCIA: Para poder redibujar las líneas en tiempo real mientras se arrastra
     private Automata automataActual;
+    
+    // Referencia al gestor de simulación para obtener colores de transiciones
+    private AutomataViewSimulation simulationManager;
 
     public AutomataViewDrawing(Pane panelDibujo) {
         this.panelDibujo = panelDibujo;
+    }
+
+    public void setSimulationManager(AutomataViewSimulation simulationManager) {
+        this.simulationManager = simulationManager;
     }
 
     public void redibujar(Automata automata, String estadoSeleccionado,
@@ -211,7 +218,15 @@ public class AutomataViewDrawing {
         double oy = logicoAVistaY(origen.getY());
         double dx = logicoAVistaX(destino.getX());
         double dy = logicoAVistaY(destino.getY());
+        
+        // Obtener color de la transición si está resaltada; caso contrario, color por defecto
         Color colorStroke = Color.web("#334155");
+        if (simulationManager != null) {
+            Color colorResaltado = simulationManager.obtenerColorTransicion(origen.getNombre(), destino.getNombre());
+            if (colorResaltado != null) {
+                colorStroke = colorResaltado;
+            }
+        }
 
         if (origen.equals(destino)) {
             // --- TRANSICIÓN BUCLE (SELF-LOOP) MÁS PEQUEÑA ---

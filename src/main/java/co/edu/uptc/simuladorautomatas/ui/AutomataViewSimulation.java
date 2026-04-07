@@ -4,11 +4,14 @@ import co.edu.uptc.simuladorautomatas.controller.AutomataController;
 import co.edu.uptc.simuladorautomatas.logic.EvaluacionCadenaResultado;
 import co.edu.uptc.simuladorautomatas.logic.PasoEvaluacion;
 import javafx.animation.PauseTransition;
+import javafx.scene.paint.Color;
 import javafx.util.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -19,6 +22,17 @@ public class AutomataViewSimulation {
     private final AutomataController controller;
     private Runnable onRedraw;
 
+    // Colores para las diferentes rutas en NFAs
+    private static final Color[] COLORES_RUTAS = {
+            Color.web("#DC2626"), // Rojo
+            Color.web("#2563EB"), // Azul
+            Color.web("#059669"), // Verde
+            Color.web("#D97706"), // Ámbar
+            Color.web("#7C3AED"), // Púrpura
+            Color.web("#EC4899"), // Rosa
+            Color.web("#14B8A6"), // Turquesa
+            Color.web("#F59E0B"), // Naranja
+    };
 
     private EvaluacionCadenaResultado simulacionActual;
     private int indicePasoActual = -1;
@@ -28,6 +42,9 @@ public class AutomataViewSimulation {
     private final Set<String> estadosResaltadosEvaluacion = new LinkedHashSet<>();
     private final Set<String> estadosFinalesEvaluacion = new LinkedHashSet<>();
     private List<EvaluacionCadenaResultado> resultadosUltimoLote = new ArrayList<>();
+    
+    // Transiciones resaltadas con sus rutas asociadas
+    private Map<String, Integer> transicionesResaltadasRuta = new HashMap<>();
 
     public AutomataViewSimulation(AutomataController controller) {
         this.controller = controller;
@@ -144,6 +161,9 @@ public class AutomataViewSimulation {
         estadosResaltadosEvaluacion.clear();
         estadosResaltadosEvaluacion.addAll(paso.getEstadosDestino());
         
+        // Actualizar transiciones resaltadas con sus colores de ruta
+        actualizarTransicionesResaltadas(paso);
+        
         if (onRedraw != null) {
             onRedraw.run();
         }
@@ -151,6 +171,30 @@ public class AutomataViewSimulation {
         if (indicePasoActual >= simulacionActual.getPasos().size() - 1) {
             reproduccionAutomaticaActiva = false;
             aplicarResultadoFinal(paso);
+        }
+    }
+
+    private void actualizarTransicionesResaltadas(PasoEvaluacion paso) {
+        transicionesResaltadasRuta.clear();
+        
+        // Si hay transiciones individuales, usarlas; si no, usar el comportamiento anterior
+        List<PasoEvaluacion.TransicionIndividual> transiciones = paso.getTransiciones();
+        
+        if (transiciones != null && !transiciones.isEmpty()) {
+            // Hay información de rutas detalladas
+            for (PasoEvaluacion.TransicionIndividual transicion : transiciones) {
+                String clave = transicion.getEstadoOrigen() + "->" + transicion.getEstadoDestino();
+                transicionesResaltadasRuta.put(clave, transicion.getNumeroRuta());
+            }
+        } else {
+            // Comportamiento de compatibilidad: generar rutas automáticamente
+            int numeroRuta = 0;
+            for (String origen : paso.getEstadosOrigen()) {
+                for (String destino : paso.getEstadosDestino()) {
+                    String clave = origen + "->" + destino;
+                    transicionesResaltadasRuta.put(clave, numeroRuta++);
+                }
+            }
         }
     }
 
@@ -183,6 +227,7 @@ public class AutomataViewSimulation {
         indicePasoActual = -1;
         estadosResaltadosEvaluacion.clear();
         estadosFinalesEvaluacion.clear();
+        transicionesResaltadasRuta.clear();
         ultimoResultadoAceptado = null;
         
         if (onRedraw != null) {
@@ -219,5 +264,31 @@ public class AutomataViewSimulation {
 
     public void limpiarResultados() {
         resultadosUltimoLote.clear();
+    }
+
+    /**
+     * Obtiene el color para una transición específica basado en su ruta
+     * @param estadoOrigen Estado de origen de la transición
+     * @param estadoDestino Estado de destino de la transición
+     * @return Color para la transición, o null si no está resaltada
+     */
+    public Color obtenerColorTransicion(String estadoOrigen, String estadoDestino) {
+        String clave = estadoOrigen + "->" + estadoDestino;
+        if (transicionesResaltadasRuta.containsKey(clave)) {
+            int numeroRuta = transicionesResaltadasRuta.get(clave);
+            return COLORES_RUTAS[numeroRuta % COLORES_RUTAS.length];
+        }
+        return null;
+    }
+
+    /**
+     * Verifica si una transición debe estar resaltada
+     * @param estadoOrigen Estado de origen
+     * @param estadoDestino Estado de destino
+     * @return true si la transición debe resaltarse
+     */
+    public boolean estaTransicionResaltada(String estadoOrigen, String estadoDestino) {
+        String clave = estadoOrigen + "->" + estadoDestino;
+        return transicionesResaltadasRuta.containsKey(clave);
     }
 }

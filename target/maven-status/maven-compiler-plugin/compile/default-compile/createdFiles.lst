@@ -13,6 +13,7 @@ co\edu\uptc\simuladorautomatas\ui\AutomataView$1.class
 co\edu\uptc\simuladorautomatas\ui\AutomataViewSimulation.class
 co\edu\uptc\simuladorautomatas\ui\AutomataViewFileOps.class
 co\edu\uptc\simuladorautomatas\logic\AutomataEvaluator.class
+co\edu\uptc\simuladorautomatas\logic\PasoEvaluacion$TransicionIndividual.class
 co\edu\uptc\simuladorautomatas\ui\AutomataViewDrawing$AristaKey.class
 co\edu\uptc\simuladorautomatas\model\TipoAutomata.class
 co\edu\uptc\simuladorautomatas\ui\AutomataViewUIBuilder.class

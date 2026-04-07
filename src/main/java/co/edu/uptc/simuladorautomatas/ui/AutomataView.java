@@ -194,6 +194,7 @@ public class AutomataView {
         drawingEngine = new AutomataViewDrawing(panelDibujo);
         interactionHandler = new AutomataViewInteraction(controller, drawingEngine);
         simulationManager = new AutomataViewSimulation(controller);
+        drawingEngine.setSimulationManager(simulationManager);
         fileOps = new AutomataViewFileOps(stage, controller);
     }
 
