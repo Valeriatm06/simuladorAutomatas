@@ -44,5 +44,10 @@ Una vez ingresado o cargado el autómata, el panel de **Pruebas** se activará:
 2. **Evaluación:** Haga clic en **"Evaluar Todas"**.
 3. **Resultados:** En la lista inferior aparecerá cada palabra evaluada y su estado (Aceptada / Rechazada).
 4. **Simulación:** Seleccione un resultado de la lista y use los botones **"Siguiente Paso"** o **"Reproducir"** para ver cómo el autómata procesa la cadena símbolo por símbolo.
-    
-<img width="500" height="700" alt="cadenas" src="https://github.com/user-attachments/assets/38a6c6cd-de0c-4b45-a7a0-63d91b4e697d" />
+   
+<img width="500" height="700" alt="Captura de pantalla 2026-04-07 060519" src="https://github.com/user-attachments/assets/b8eaa745-458a-466e-800d-46b1a7dec2ce" />
+
+5. Para ver la **función de transición** de una cadena de soble click sobre la cadena, y luego en el botón de `ver δ*`. Aparecerá una ventana que muestra la función de transición y permite copiar en portapapeles
+   
+<img width="751" height="691" alt="Captura de pantalla 2026-04-07 060631" src="https://github.com/user-attachments/assets/ce0f86ae-d07d-4e83-8795-ad367a273733" />
+
