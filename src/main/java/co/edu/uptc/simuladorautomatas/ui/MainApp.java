@@ -2,6 +2,7 @@ package co.edu.uptc.simuladorautomatas.ui;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
 public class MainApp extends Application {
@@ -12,6 +13,7 @@ public class MainApp extends Application {
         Scene scene = new Scene(view.build(), 1200, 760);
         scene.getStylesheets().add(getClass().getResource("/ui/automata-view.css").toExternalForm());
         stage.setTitle("Simulador y Analizador de Automatas Finitos");
+        stage.getIcons().add(new Image(getClass().getResourceAsStream("/ui/logo.png")));
         stage.setScene(scene);
         stage.setMaximized(true);
         stage.show();
