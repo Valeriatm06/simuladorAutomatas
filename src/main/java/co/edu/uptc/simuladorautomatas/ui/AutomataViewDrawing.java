@@ -27,13 +27,50 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Motor de dibujado: Responsable de renderizar estados, transiciones y etiquetas en el canvas.
- * Refactorizado para usar el máximo potencial de JavaFX (Grupos, Capas y Drag dinámico).
+ * Motor de renderización para visualización de autómatas en el canvas.
+ * 
+ * Responsabilidades:
+ * - Renderizar estados (círculos) con estilos según estado (inicial, final, seleccionado, resaltado)
+ * - Renderizar transiciones (flechas curvas) con etiquetas de símbolos
+ * - Manejo de bucles (self-loops) con visualización especial
+ * - Sistema de arrastre (drag & drop) para mover estados
+ * - Cálculo de escala adaptativa basado en tamaño del panel
+ * - Gestión de capas para optimizar rendering de flechas
+ * 
+ * Arquitectura:
+ * - Usa 2 capas (Groups): capaTransiciones (fondo) y capaEstados (frente)
+ * - Cada estado es un Group con componentes (círculos, texto, flechas iniciales)
+ * - Sistema de etiquetas inteligente que evita colisiones
  */
 public class AutomataViewDrawing {
+    // Constantes de geometría
     private static final double RADIO_ESTADO = 30;
     private static final double CANVAS_LOGICAL_WIDTH = 900;
     private static final double CANVAS_LOGICAL_HEIGHT = 620;
+    
+    // Constantes de curvas y transiciones
+    private static final double ANCHO_LINEA_TRANSICION = 1.7;
+    private static final double ANCHO_LINEA_BUCLE = 1.6;
+    private static final double CURVATURA_MINIMA = 18;
+    private static final double MULTIPLICADOR_CURVATURA = 0.07;
+    private static final double OFFSET_ETIQUETA = 18.0;
+    
+    // Constantes de bucles (self-loops)
+    private static final double ANGULO_SALIDA_BUCLE = Math.toRadians(-115);
+    private static final double ANGULO_ENTRADA_BUCLE = Math.toRadians(-65);
+    private static final double ALTURA_LAZO = 1.8; // Multiplicador del radio
+    private static final double ANCHO_LAZO = 0.8;  // Multiplicador del radio
+    
+    // Constantes de estilos y colores
+    private static final String COLOR_LINEA_DEFAULT = "#334155";
+    private static final String COLOR_SELECCION = "#2563EB";
+    private static final String COLOR_RESALTE_EVAL = "#F59E0B";
+    private static final double ANCHO_STROKE_SELECCION = 3.0;
+    private static final double ANCHO_STROKE_BASE = 1.7;
+    
+    // Constantes de arrastre de punta de flecha
+    private static final double LARGO_PUNTA_FLECHA = 12;
+    private static final double ANCHO_PUNTA_FLECHA = 6;
 
     private Pane panelDibujo;
     private final List<double[]> zonasEtiquetasTransicion = new ArrayList<>();
@@ -49,10 +86,12 @@ public class AutomataViewDrawing {
     // Referencia al gestor de simulación para obtener colores de transiciones
     private AutomataViewSimulation simulationManager;
 
+    //Constructor que vincula el motor de dibujo a un panel/pane JavaFX.
     public AutomataViewDrawing(Pane panelDibujo) {
         this.panelDibujo = panelDibujo;
     }
 
+    //Asocia el gestor de simulación para obtener colores de transiciones resaltadas.
     public void setSimulationManager(AutomataViewSimulation simulationManager) {
         this.simulationManager = simulationManager;
     }
@@ -61,28 +100,21 @@ public class AutomataViewDrawing {
                           Set<String> estadosResaltados, Set<String> estadosFinales,
                           Boolean ultimoResultadoAceptado) {
         this.automataActual = automata;
-        
-        // Configuramos las capas por primera vez o reemplazamos el contenido anterior
+
         panelDibujo.getChildren().setAll(capaTransiciones, capaEstados);
         capaEstados.getChildren().clear();
 
         calcularEscala();
 
-        // 1. Dibujamos los estados en su capa superior
         for (Estado estado : automata.getEstados()) {
             dibujarEstado(estado, estadoSeleccionado, estadosResaltados, estadosFinales, ultimoResultadoAceptado);
         }
 
-        // 2. Dibujamos las transiciones en la capa inferior
         redibujarTransiciones();
-        
-        // 3. Agregamos el ícono de información en la esquina superior
         agregarIconoInformacion(automata);
     }
 
-    /**
-     * Agrega un ícono de información en la esquina superior del panel
-     */
+    //Agrega el ícono de información en la esquina superior del panel
     private void agregarIconoInformacion(Automata automata) {
         Label iconoInfo = new Label("ⓘ");
         iconoInfo.setStyle("-fx-font-size: 18px; -fx-text-fill: #2563EB; -fx-cursor: hand;");
@@ -101,9 +133,7 @@ public class AutomataViewDrawing {
         capaEstados.getChildren().add(iconoInfo);
     }
 
-    /**
-     * Genera la quintupla del autómata en formato legible
-     */
+    //Genera la quintupla del autómata en formato legible
     private String generarQuintupla(Automata automata) {
         StringBuilder sb = new StringBuilder();
         
@@ -160,7 +190,10 @@ public class AutomataViewDrawing {
     }
 
     /**
-     * Extraído para poder llamar solo a la actualización de flechas durante el arrastre (Drag)
+     * Redibuja solo las transiciones (flechas y etiquetas) manteniendo los estados.
+     * 
+     * Utilizado durante arrastre de estados para actualizar flechas sin redibular estados.
+     * Agrupa transiciones entre mismos pares de estados y etiqueta con símbolos combinados.
      */
     private void redibujarTransiciones() {
         capaTransiciones.getChildren().clear();
@@ -431,6 +464,12 @@ public class AutomataViewDrawing {
         capaTransiciones.getChildren().addAll(curva, punta, chip);
     }
 
+    /**
+     * Agrupa transiciones entre los mismos pares de estados.
+     * 
+     * Si existen múltiples transiciones entre dos estados con símbolos diferentes,
+     * combina los símbolos en una sola etiqueta (ej: "a, b, c").
+     */
     private Map<AristaKey, String> agruparTransiciones(List<Transicion> transiciones) {
         Map<AristaKey, LinkedHashSet<String>> agrupadas = new LinkedHashMap<>();
         for (Transicion transicion : transiciones) {
@@ -514,8 +553,12 @@ public class AutomataViewDrawing {
         }
     }
 
-    private double radioEscalado() {
-        return RADIO_ESTADO * escala;
+    public double getRadioEscalado() {
+        return radioEscalado();
+    }
+
+    public double getEscala() {
+        return escala;
     }
 
     private double logicoAVistaX(double x) {
@@ -534,12 +577,8 @@ public class AutomataViewDrawing {
         return y / escala;
     }
 
-    public double getRadioEscalado() {
-        return radioEscalado();
-    }
-
-    public double getEscala() {
-        return escala;
+    private double radioEscalado() {
+        return RADIO_ESTADO * escala;
     }
 
     private String formatearSimboloVisual(String simbolo) {

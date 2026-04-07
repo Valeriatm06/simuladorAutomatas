@@ -7,6 +7,7 @@ import co.edu.uptc.simuladorautomatas.logic.TransicionIndividual;
 import javafx.animation.PauseTransition;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -17,7 +18,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Gestiona la simulación: evaluación de cadenas, reproducción automática y avance de pasos.
+ * Gestor de simulación de autómatas finitos.
+ * 
+ * Responsable de:
+ * - Evaluar palabras/cadenas contra el autómata
+ * - Gestionar la reproduccion paso a paso manual o automática
+ * - Mantener el estado de la simulación actual
+ * - Gestionar colores y resaltados de estados/transiciones
+ * 
  */
 public class AutomataViewSimulation {
     private final AutomataController controller;
@@ -34,6 +42,9 @@ public class AutomataViewSimulation {
             Color.web("#14B8A6"), // Turquesa
             Color.web("#F59E0B"), // Naranja
     };
+
+    // Tiempos de animación
+    private static final int DURACION_PAUSE_MS = 800;
 
     private EvaluacionCadenaResultado simulacionActual;
     private int indicePasoActual = -1;
@@ -55,8 +66,6 @@ public class AutomataViewSimulation {
         this.onRedraw = callback;
     }
 
-
-
     public List<EvaluacionCadenaResultado> evaluarPalabras(String textoPalabras) {
         List<String> entradas = Arrays.stream(textoPalabras.split("\\R"))
                 .map(String::trim)
@@ -77,6 +86,10 @@ public class AutomataViewSimulation {
         }
     }
 
+    /**
+     * Inicia una simulación para una cadena específica.
+     * Prepara el estado para reproducir paso a paso.
+     */
     public void iniciarSimulacion(EvaluacionCadenaResultado resultado) {
         detenerSimulacion();
         simulacionActual = resultado;
@@ -98,6 +111,10 @@ public class AutomataViewSimulation {
         }
     }
 
+    /**
+     * Reproduce la simulación desde el inicio de forma automática.
+     * Avanza automáticamente por cada paso con retraso.
+     */
     public void reproducirDesdeInicio() {
         if (simulacionActual == null) {
             return;
@@ -121,6 +138,10 @@ public class AutomataViewSimulation {
         programarSiguientePaso();
     }
 
+    /**
+     * Avanza manualmente un paso en la simulación.
+     * Detiene cualquier reproducción automática en curso.
+     */
     public void avanzarManual() {
         if (simulacionActual == null) {
             return;
@@ -130,12 +151,16 @@ public class AutomataViewSimulation {
         avanzarPaso();
     }
 
+    /**
+     * Programa el siguiente paso en la reproducción automática.
+     * Utiliza PauseTransition para crear una demora antes de avanzar.
+     */
     private void programarSiguientePaso() {
         if (!reproduccionAutomaticaActiva || simulacionActual == null) {
             return;
         }
         detenerPausa();
-        pausaSimulacion = new PauseTransition(Duration.millis(800));
+        pausaSimulacion = new PauseTransition(Duration.millis(DURACION_PAUSE_MS));
         pausaSimulacion.setOnFinished(event -> {
             avanzarPaso();
             if (reproduccionAutomaticaActiva
@@ -147,6 +172,10 @@ public class AutomataViewSimulation {
         pausaSimulacion.play();
     }
 
+    /**
+     * Avanza un paso en la evaluación de la cadena.
+     * Actualiza estados resaltados y transiciones visibles.
+     */
     private void avanzarPaso() {
         if (simulacionActual == null) {
             return;
@@ -175,6 +204,9 @@ public class AutomataViewSimulation {
         }
     }
 
+    /**
+     * Actualiza el mapeo de transiciones resaltadas con sus colores de ruta.
+     */
     private void actualizarTransicionesResaltadas(PasoEvaluacion paso) {
         transicionesResaltadasRuta.clear();
         
@@ -199,6 +231,10 @@ public class AutomataViewSimulation {
         }
     }
 
+    /**
+     * Aplica el resultado final de la evaluación.
+     * Resalta los estados finales y determina si la cadena fue aceptada.
+     */
     private void aplicarResultadoFinal(PasoEvaluacion ultimoPaso) {
         if (simulacionActual == null) {
             return;
@@ -267,12 +303,6 @@ public class AutomataViewSimulation {
         resultadosUltimoLote.clear();
     }
 
-    /**
-     * Obtiene el color para una transición específica basado en su ruta
-     * @param estadoOrigen Estado de origen de la transición
-     * @param estadoDestino Estado de destino de la transición
-     * @return Color para la transición, o null si no está resaltada
-     */
     public Color obtenerColorTransicion(String estadoOrigen, String estadoDestino) {
         String clave = estadoOrigen + "->" + estadoDestino;
         if (transicionesResaltadasRuta.containsKey(clave)) {
@@ -282,12 +312,6 @@ public class AutomataViewSimulation {
         return null;
     }
 
-    /**
-     * Verifica si una transición debe estar resaltada
-     * @param estadoOrigen Estado de origen
-     * @param estadoDestino Estado de destino
-     * @return true si la transición debe resaltarse
-     */
     public boolean estaTransicionResaltada(String estadoOrigen, String estadoDestino) {
         String clave = estadoOrigen + "->" + estadoDestino;
         return transicionesResaltadasRuta.containsKey(clave);

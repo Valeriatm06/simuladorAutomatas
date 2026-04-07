@@ -17,10 +17,28 @@ import java.io.File;
 import java.util.Optional;
 
 /**
- * Operaciones de archivo: guardar y cargar autómatas.
- * Refactorizado para maximizar la UI de JavaFX, evitar duplicidad y corregir bugs de diálogos.
+ * Gestor de operaciones de archivo para autómatas.
+ * 
+ * Responsable de:
+ * - Guardar autómatas en archivos JSON
+ * - Cargar autómatas desde archivos
+ * - Mostrar diálogos de ayuda e información
+ * - Confirmar operaciones destructivas (reinicio)
+ *
  */
 public class AutomataViewFileOps {
+    private static final String EXTENSION_JSON = "*.json";
+    private static final String FILTER_JSON = "Archivos JSON (*.json)";
+    private static final String TITLE_SAVE = "Guardar autómata";
+    private static final String TITLE_LOAD = "Cargar autómata";
+    private static final String TITLE_HELP = "Ayuda - Simulador de Autómatas";
+    private static final int HELP_VIEWPORT_HEIGHT = 450;
+    private static final int HELP_VIEWPORT_WIDTH = 520;
+    private static final int HELP_SPACING = 16;
+    private static final int SECTION_FONT_SIZE = 14;
+    private static final int POINT_FONT_SIZE = 13;
+    private static final int POINT_INDENT = 10;
+    
     private final Stage stage;
     private final AutomataController controller;
     private Runnable onAutomataLoaded;
@@ -40,7 +58,7 @@ public class AutomataViewFileOps {
     }
 
     public void guardarAutomata() {
-        File file = configurarFileChooser("Guardar autómata").showSaveDialog(stage);
+        File file = configurarFileChooser(TITLE_SAVE).showSaveDialog(stage);
         if (file == null) return;
 
         try {
@@ -53,7 +71,7 @@ public class AutomataViewFileOps {
     }
 
     public void cargarAutomata() {
-        File file = configurarFileChooser("Cargar autómata").showOpenDialog(stage);
+        File file = configurarFileChooser(TITLE_LOAD).showOpenDialog(stage);
         if (file == null) return;
 
         try {
@@ -69,12 +87,12 @@ public class AutomataViewFileOps {
 
     public void mostrarAyuda() {
         Dialog<Void> ayuda = new Dialog<>();
-        ayuda.initOwner(stage); // Evita que el diálogo se pierda detrás de la ventana principal
-        ayuda.setTitle("Ayuda - Simulador de Autómatas");
+        ayuda.initOwner(stage);
+        ayuda.setTitle(TITLE_HELP);
         ayuda.setHeaderText("Guía rápida de uso");
         ayuda.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
 
-        VBox contenido = new VBox(16); // Mayor espaciado entre secciones para mejor lectura
+        VBox contenido = new VBox(HELP_SPACING);
         contenido.setPadding(new Insets(15, 20, 15, 10));
         
         contenido.getChildren().addAll(
@@ -106,8 +124,8 @@ public class AutomataViewFileOps {
         ScrollPane scroll = new ScrollPane(contenido);
         scroll.setFitToWidth(true);
         scroll.setStyle("-fx-background-color: transparent; -fx-control-inner-background: transparent;");
-        scroll.setPrefViewportHeight(450);
-        scroll.setPrefViewportWidth(520);
+        scroll.setPrefViewportHeight(HELP_VIEWPORT_HEIGHT);
+        scroll.setPrefViewportWidth(HELP_VIEWPORT_WIDTH);
 
         ayuda.getDialogPane().setContent(scroll);
         ayuda.showAndWait();
@@ -115,7 +133,7 @@ public class AutomataViewFileOps {
 
     private VBox crearSeccionAyuda(String titulo, String... puntos) {
         Label tituloLabel = new Label(titulo);
-        tituloLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1E293B;");
+        tituloLabel.setStyle("-fx-font-size: " + SECTION_FONT_SIZE + "px; -fx-font-weight: bold; -fx-text-fill: #1E293B;");
         tituloLabel.setPadding(new Insets(0, 0, 4, 0));
 
         VBox seccion = new VBox(6);
@@ -124,8 +142,8 @@ public class AutomataViewFileOps {
         for (String punto : puntos) {
             Label linea = new Label("• " + punto);
             linea.setWrapText(true);
-            linea.setStyle("-fx-font-size: 13px; -fx-text-fill: #475569;");
-            linea.setPadding(new Insets(0, 0, 0, 10)); // Sangría para los bullet points
+            linea.setStyle("-fx-font-size: " + POINT_FONT_SIZE + "px; -fx-text-fill: #475569;");
+            linea.setPadding(new Insets(0, 0, 0, POINT_INDENT));
             seccion.getChildren().add(linea);
         }
         return seccion;
@@ -156,12 +174,10 @@ public class AutomataViewFileOps {
         }
     }
 
-    // --- MÉTODOS PRIVADOS DE UTILIDAD ---
-
     private FileChooser configurarFileChooser(String titulo) {
         FileChooser chooser = new FileChooser();
         chooser.setTitle(titulo);
-        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos JSON (*.json)", "*.json"));
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(FILTER_JSON, EXTENSION_JSON));
         return chooser;
     }
 
@@ -183,12 +199,8 @@ public class AutomataViewFileOps {
         alert.showAndWait();
     }
 
-    /**
-     * Aplica configuraciones estándar a las alertas para evitar bugs visuales de JavaFX.
-     */
     private void configurarAlerta(Alert alert) {
         alert.initOwner(stage);
-        // Fuerza al texto a usar el espacio que necesite (Evita que el texto largo termine en "...")
         alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
     }
 }

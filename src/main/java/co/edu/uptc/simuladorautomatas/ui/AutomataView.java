@@ -27,12 +27,33 @@ import java.util.stream.Collectors;
 
 /**
  * Vista principal del simulador de automatas.
+ * 
+ * Orquesta toda la interfaz gráfica coordinando:
+ * - Motor de dibujo (renderización de estados y transiciones)
+ * - Manejador de interacción (eventos del canvas y diálogos)
+ * - Gestor de simulación (evaluación de cadenas y pasos)
+ * - Operaciones de archivo (guardar/cargar)
+ * 
+ * Maneja:
+ * - Ciclo de vida del autómata: creación, edición, evaluación
+ * - Entrada de datos: tipo, alfabeto, palabras de prueba
+ * - Visualización: canvas con estados/transiciones, resultados
+ * - Estado del proceso: indicadores, mensajes de error/éxito
  */
 public class AutomataView {
+    // Constantes visuales
     private static final String EPSILON_VISUAL = "ε";
     private static final double CANVAS_WIDTH = 900;
     private static final double CANVAS_HEIGHT = 620;
     private static final double MARGEN_ESTADO = 46;
+    
+    // Constantes de UI
+    private static final int MARGIN_TOOLBAR = 8;
+    private static final int MARGIN_PANEL_DERECHO = 8;
+    private static final int STEP_INICIAL = 1;
+    private static final int STEP_CREAR_ESTADO = 2;
+    private static final int STEP_CREAR_TRANSICION = 3;
+    private static final int STEP_EVALUAR = 4;
 
     private final Stage stage;
     private final AutomataController controller;
@@ -65,11 +86,19 @@ public class AutomataView {
     private double ultimaYMouse;
     private boolean modoCrearEstado;
 
+    // Constructor de la vista principal.
     public AutomataView(Stage stage) {
         this.stage = stage;
         this.controller = new AutomataController();
     }
 
+    /**
+     * Construye y retorna el árbol de nodos de la interfaz gráfica.
+     * 
+     * Estructura:
+     * - Top: Encabezado (header) con título y botón reinicio
+     * - Center: Zona principal con canvas y paneles
+     */
     public Parent build() {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("app-root-with-grid");
@@ -212,6 +241,7 @@ public class AutomataView {
         actualizarEstadoPasoAPaso();
     }
 
+    //Maneja click en canvas: crear estado o seleccionar estado.
     private void onCanvasMouseClicked(double x, double y) {
         if (modoCrearEstado) {
             crearEstadoEnCanvas(x, y);
@@ -239,6 +269,12 @@ public class AutomataView {
         redibujar();
     }
 
+    /**
+     * Inicia drag (arrastre) de un estado cuando se presiona con mouse.
+     * 
+     * Registra la posición inicial y el estado bajo el cursor.
+     * Si no hay estado, no hace nada 
+     */
     private void onCanvasMousePressed(double x, double y) {
         if (modoCrearEstado) {
             return;
@@ -252,6 +288,12 @@ public class AutomataView {
         ultimaYMouse = y;
     }
 
+    /**
+     * Mueve un estado arrastrándolo dentro del canvas.
+     * 
+     * Calcula delta desde última posición y actualiza coordenadas del estado.
+     * Limita movimiento dentro de los márgenes del canvas.
+     */
     private void onCanvasMouseDragged(double x, double y) {
         if (estadoArrastrandose == null) {
             return;
@@ -288,6 +330,11 @@ public class AutomataView {
         estadoArrastrandose = null;
     }
 
+    /**
+     * Crea un nuevo autómata con el tipo y alfabeto especificado.
+     * 
+     * Valida entrada, crea autómata, transiciona a panel de pruebas.
+     */
     private void crearNuevoAutomata() {
         try {
             List<String> alfabeto = construirAlfabeto();
@@ -321,6 +368,12 @@ public class AutomataView {
         marcarPasoCompleto(1);
     }
 
+    /**
+     * Activa modo de creación de estados.
+     * 
+     * Muestra diálogo para ingresar nombre del estado.
+     * Al confirmar, usuario puede hacer click en canvas para posicionar.
+     */
     private void activarModoCreacionEstado() {
         interactionHandler.mostrarDialogoNuevoEstado(() -> {
             modoCrearEstado = true;
@@ -328,6 +381,11 @@ public class AutomataView {
         });
     }
 
+    /**
+     * Activa modo de creación de transiciones.
+     * 
+     * Al confirmar, agrega transición y redibuja.
+     */
     private void activarModoCreacionTransicion() {
         interactionHandler.mostrarDialogoNuevaTransicion(() -> {
             redibujar();
@@ -374,6 +432,12 @@ public class AutomataView {
         mostrarInfoEstado("Estado '" + nombreEstado + "' creado");
     }
 
+    /**
+     * Evalúa todas las palabras ingresadas en el TextArea contra el autómata.
+     * 
+     * Procesa líneas, filtra vacías, simula y muestra resultados en ListView.
+     * Habilita botones de paso a paso y reproducción.
+     */
     private void evaluarPalabras() {
         try {
             List<EvaluacionCadenaResultado> resultados = simulationManager.evaluarPalabras(palabrasArea.getText());
@@ -446,6 +510,10 @@ public class AutomataView {
         VentanaFuncionTransicion.mostrar(funcionExtendida);
     }
 
+    /**
+     * Actualiza el Label de estado indicando el paso actual de la evaluación.
+     * Estilos: status-ok (paso normal) o status-error (rechazada).
+     */
     private void actualizarEstadoPasoAPaso() {
         EvaluacionCadenaResultado simulacion = simulationManager.getSimulacionActual();
         if (simulacion == null) {
@@ -547,6 +615,11 @@ public class AutomataView {
         palabrasArea.positionCaret(palabrasArea.getText().length());
     }
 
+    /**
+     * Marca un paso como completado en el stepper visual.
+     * 
+     * Actualiza las clases CSS del step indicado y activa el siguiente.
+     */
     private void marcarPasoCompleto(int paso) {
         if (!esPasoValido(paso)) {
             return;
@@ -580,6 +653,7 @@ public class AutomataView {
         }
     }
 
+    //Callback ejecutado cuando se carga un autómata desde archivo.
     private void onAutomataLoaded() {
         var automata = controller.getAutomataActual();
         tipoCombo.setValue(automata.getTipo());
@@ -592,6 +666,7 @@ public class AutomataView {
         redibujar();
     }
 
+    //Callback ejecutado cuando se reinicia la aplicación o se carga un nuevo autómata.
     private void onAutomataReset() {
         modoCrearEstado = false;
         tipoCombo.setValue(TipoAutomata.DFA);

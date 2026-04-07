@@ -11,11 +11,49 @@ import javafx.event.EventHandler;
 import javafx.event.ActionEvent;
 
 /**
- * Responsable de construir todos los paneles y componentes UI.
- * Encapsula: header, toolbar, steppers, paneles de configuración y pruebas.
+ * Constructor de componentes e interfaces de usuario.
+ * 
+ * Responsabilidades:
+ * - Construir el encabezado (header) con título y botón de reinicio
+ * - Crear indicadores visuales de progreso (steppers) para guiar el flujo
+ * - Ensamblar la barra de herramientas flotante con acciones principales
+ * - Construir paneles de configuración (tipo de autómata, alfabeto)
+ * - Construir paneles de pruebas (entrada de palabras, resultados, simulación)
+ * - Proporcionar componentes UI base con estilos consistentes
+ * 
+ * Constantes de dimensiones para mantener coherencia visual en toda la aplicación.
+ * 
  */
 public class AutomataViewUIBuilder {
+    // Espaciados del header y contenedor principal
+    private static final int SEPARACION_LOGO = 10;
+    private static final int SEPARACION_STEPPER = 20;
+    private static final int PADDING_HEADER = 8;
+    
+    // Dimensiones de la barra de herramientas flotante
+    private static final int ANCHO_TOOLBAR = 60;
+    private static final int ANCHO_BOTON_TOOLBAR = 36;
+    
+    // Dimensiones del panel de detalles (lateral derecho)
+    private static final int ANCHO_PANEL_DETALLES = 300;
+    private static final int ANCHO_MIN_PANEL = 250;
+    private static final int ANCHO_MAX_PANEL = 350;
+    
+    // Espaciados internos de paneles
+    private static final int SPACING_DETALLES = 8;
+    private static final int SPACING_SECCION = 6;
+    
+    // Alturas preestablecidas
+    private static final int ALTURA_PALABRAS = 8;
+    private static final int ALTURA_RESULTADOS = 230;
+    
+    // Etapas del flujo de configuración
+    private static final String[] PASOS = {"CREAR AUTOMATA", "DEFINIR ESTADOS", "DEFINIR TRANSICIONES", "EVALUAR CADENAS"};
+    private static final int NUM_PASOS = 4;
 
+    /**
+     * Construye el encabezado principal de la aplicación.
+     */
     public Parent crearHeader(Runnable onReiniciar) {
         Label titulo = new Label("Simulador y Analizador de Automatas (DFA / NFA)");
         titulo.getStyleClass().add("app-title");
@@ -87,6 +125,7 @@ public class AutomataViewUIBuilder {
         return stepsContainer;
     }
 
+    //Crea la barra de herramientas flotante vertical con acciones principales.
     public VBox crearToolbarFlotante(
             Runnable onAgregarEstado,
             Runnable onAgregarTransicion,
@@ -126,6 +165,13 @@ public class AutomataViewUIBuilder {
         return btn;
     }
 
+    /**
+     * Crea el StackPane principal con paneles de configuración y pruebas.
+     * 
+     * Utiliza StackPane para cambiar entre dos vistas:
+     * 1. Panel de Configuración: seleccionar tipo, definir alfabeto
+     * 2. Panel de Pruebas: ingresar palabras, evaluar, ver resultados
+     */
     public StackPane crearPanelDetalles(
             ComboBox<TipoAutomata> tipoCombo,
             TextField alfabetoField,
@@ -144,7 +190,6 @@ public class AutomataViewUIBuilder {
             Label estadoProcesoLabel,
             VBox[] panelConfiguracionOut,
             VBox[] panelPruebasOut) {
-
         StackPane stackPane = crearContenedorDetalles();
         VBox panelConfiguracion = construirPanelConfiguracion(tipoCombo, alfabetoField, onCrearAutomata);
         VBox panelPruebas = construirPanelPruebas(
@@ -167,6 +212,11 @@ public class AutomataViewUIBuilder {
         return stackPane;
     }
 
+    /**
+     * Crea el contenedor StackPane base para alternancia de paneles.
+     * 
+     * Dimensiones: 300x620 (ancho x alto) con límites mín/máx para redimensionamiento.
+     */
     private StackPane crearContenedorDetalles() {
         StackPane stackPane = new StackPane();
         stackPane.setPrefWidth(300);
@@ -175,6 +225,9 @@ public class AutomataViewUIBuilder {
         return stackPane;
     }
 
+    /**
+     * Crea el VBox base para los paneles de detalles con estilos comunes.
+     */
     private VBox crearPanelBaseDetalles(boolean visible) {
         VBox panel = new VBox(8);
         panel.getStyleClass().add("details-panel");
@@ -186,6 +239,14 @@ public class AutomataViewUIBuilder {
         return panel;
     }
 
+    /**
+     * Construye el panel de configuración inicial del autómata.
+     * 
+     * Permite al usuario:
+     * - Seleccionar tipo de autómata (DFA/NFA)
+     * - Ingresar alfabeto de entrada
+     * - Crear un nuevo autómata
+     */
     private VBox construirPanelConfiguracion(ComboBox<TipoAutomata> tipoCombo, TextField alfabetoField, Runnable onCrearAutomata) {
         VBox panelConfiguracion = crearPanelBaseDetalles(true);
         Label titulo = new Label("Configuración");
@@ -199,6 +260,12 @@ public class AutomataViewUIBuilder {
         return panelConfiguracion;
     }
 
+    /**
+     * Crea la sección visual de definición de tipo y alfabeto.
+     * 
+     * Agrupa los controles para tipo de autómata, entrada de alfabeto
+     * y botón para crear el autómata.
+     */
     private VBox crearSeccionDefinicion(ComboBox<TipoAutomata> tipoCombo, TextField alfabetoField, Runnable onCrearAutomata) {
         VBox seccionDefinicion = new VBox(6);
 
@@ -227,6 +294,16 @@ public class AutomataViewUIBuilder {
         return seccionDefinicion;
     }
 
+    /**
+     * Construye el panel de pruebas para evaluar palabras contra el autómata.
+     * 
+     * Proporciona:
+     * - Área de entrada para palabras (multilinea)
+     * - Botones: Evaluar Todas, Limpiar, Agregar ε
+     * - ListView de resultados del lote
+     * - Controles de simulación: Siguiente paso, Reproducir, Ver δ*
+     * - Indicador de estado del proceso actual
+     */
     private VBox construirPanelPruebas(
             TextArea palabrasArea,
             Runnable onEvaluarTodas,
@@ -266,6 +343,9 @@ public class AutomataViewUIBuilder {
         return panelPruebas;
     }
 
+    /**
+     * Configura el TextArea para entrada de palabras de prueba.
+     */
     private void configurarEntradaPalabras(TextArea palabrasArea) {
         palabrasArea.setPromptText("Ingrese una palabra por línea" + System.lineSeparator() +
                 "Use ε/lambda para palabra vacía" + System.lineSeparator());
@@ -273,6 +353,11 @@ public class AutomataViewUIBuilder {
         palabrasArea.setPrefRowCount(8);
     }
 
+    /**
+     * Crea la fila de botones para controlar las pruebas de palabras.
+     * 
+     * Botones: Evaluar Todas (primario), Limpiar (secundario), Epsilon (agregar ε).
+     */
     private HBox crearBotonesPruebas(Runnable onEvaluarTodas, Runnable onLimpiar, Runnable onEpsilon) {
         Button btnEvaluarTodas = new Button("Evaluar Todas");
         btnEvaluarTodas.getStyleClass().add("btn-primary");
@@ -296,12 +381,20 @@ public class AutomataViewUIBuilder {
         return botonesPruebas;
     }
 
+    /**
+     * Configura el ListView para mostrar los resultados de evaluación del lote.
+     */
     private void configurarResultadosLote(ListView<?> resultadosLoteList) {
         resultadosLoteList.setPrefHeight(230);
         resultadosLoteList.setPlaceholder(new Label("Evalúe cadenas para ver resultados"));
         VBox.setVgrow(resultadosLoteList, Priority.ALWAYS);
     }
 
+    /**
+     * Configura los botones de simulación y los organiza en una fila vertical.
+     * 
+     * Botones: Siguiente Paso, Reproducir automático, Ver δ* (función de transición).
+     */
     private HBox configurarBotonesSimulacion(
             Button btnSiguientePaso,
             Button btnReproducir,
@@ -335,12 +428,18 @@ public class AutomataViewUIBuilder {
         return botonesSimulacion;
     }
 
+    /**
+     * Configura el Label que muestra el estado actual del proceso de evaluación.
+     */
     private void configurarEstadoProceso(Label estadoProcesoLabel) {
         estadoProcesoLabel.setMaxWidth(Double.MAX_VALUE);
         estadoProcesoLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748B; -fx-wrap-text: true;");
         estadoProcesoLabel.getStyleClass().add("status-chip");
     }
 
+    /**
+     * Copia referencias de paneles en los arrays de salida para acceso desde el exterior.
+     */
     private void publicarPanelesSalida(
             VBox[] panelConfiguracionOut,
             VBox[] panelPruebasOut,
@@ -354,6 +453,11 @@ public class AutomataViewUIBuilder {
         }
     }
 
+    /**
+     * Alterna a la vista del panel de configuración (oculta panel de pruebas).
+     * 
+     * Utilizado después de crear automata para mostrar la configuración nuevamente.
+     */
     public void mostrarPanelConfiguracion(VBox panelConfiguracion, VBox panelPruebas) {
         panelConfiguracion.setVisible(true);
         panelConfiguracion.setManaged(true);
@@ -361,6 +465,11 @@ public class AutomataViewUIBuilder {
         panelPruebas.setManaged(false);
     }
 
+    /**
+     * Alterna a la vista del panel de pruebas (oculta panel de configuración).
+     * 
+     * Utilizado después de crear autómata para mostrar pruebas.
+     */
     public void mostrarPanelPruebas(VBox panelConfiguracion, VBox panelPruebas) {
         panelConfiguracion.setVisible(false);
         panelConfiguracion.setManaged(false);

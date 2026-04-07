@@ -15,13 +15,27 @@ import javafx.scene.layout.VBox;
 import java.util.Optional;
 
 /**
- * Maneja la interacción del usuario: crear estados, crear transiciones, seleccionar y arrastrar.
- * Refactorizado para evitar duplicidad de código (DRY) y mejorar la interfaz gráfica nativa.
+ * Gestor de interacción del usuario con el canvas del autómata.
+ * 
+ * Responsable de:
+ * - Mostrar diálogos para crear estados y transiciones
+ * - Detectar y seleccionar estados en el canvas
+ * - Manejar eliminación de estados
+ * - Gestionar la creación de estados en posiciones del lienzo
+ * 
  */
 public class AutomataViewInteraction {
     private final AutomataController controller;
     private final AutomataViewDrawing drawingEngine;
     private Runnable onStatusChange;
+    
+    // Límites del canvas para posicionamiento de estados
+    private static final double MARGEN_CANVAS = 46;
+    private static final double ANCHO_CANVAS = 900;
+    private static final double ALTO_CANVAS = 620;
+    
+    // Tolerancia para detectar clicks en estados
+    private static final double TOLERANCIA_CLICK = 8;
     
     // Datos del estado siendo creado
     private String estadoEnCreacionNombre;
@@ -46,6 +60,7 @@ public class AutomataViewInteraction {
         VBox content = new VBox(15);
         content.setPadding(new Insets(15, 10, 10, 10));
 
+        // Campo para nombre del estado
         HBox nombreBox = new HBox(10);
         nombreBox.setAlignment(Pos.CENTER_LEFT);
         Label labelNombre = new Label("Nombre:");
@@ -55,6 +70,7 @@ public class AutomataViewInteraction {
         nombreField.setPrefWidth(200);
         nombreBox.getChildren().addAll(labelNombre, nombreField);
 
+        // Checkboxes para propiedades
         CheckBox inicialCheckBox = new CheckBox("Es Estado Inicial");
         inicialCheckBox.setStyle("-fx-font-size: 13px; -fx-text-fill: #334155;");
         
@@ -102,12 +118,14 @@ public class AutomataViewInteraction {
         VBox content = new VBox(10);
         content.setPadding(new Insets(10));
 
+        // Selección de estado origen
         Label labelOrigen = new Label("Estado de origen:");
         labelOrigen.setStyle("-fx-font-weight: bold; -fx-text-fill: #475569;");
         ComboBox<String> comboOrigen = new ComboBox<>();
         comboOrigen.getItems().addAll(controller.nombresEstados());
         comboOrigen.setMaxWidth(Double.MAX_VALUE);
 
+        // Símbolo de transición
         Label labelSimbolo = new Label("Símbolo de transición:");
         labelSimbolo.setStyle("-fx-font-weight: bold; -fx-text-fill: #475569;");
         TextField campoSimbolo = new TextField();
@@ -121,6 +139,7 @@ public class AutomataViewInteraction {
         HBox simboloBox = new HBox(8, campoSimbolo, btnEpsilon);
         HBox.setHgrow(campoSimbolo, Priority.ALWAYS);
 
+        // Selección de estado destino
         Label labelDestino = new Label("Estado destino:");
         labelDestino.setStyle("-fx-font-weight: bold; -fx-text-fill: #475569;");
         ComboBox<String> comboDestino = new ComboBox<>();
@@ -190,8 +209,8 @@ public class AutomataViewInteraction {
 
     public void crearEstadoEnPosicion(String nombre, boolean esInicial, boolean esAceptacion, double x, double y) {
         try {
-            double posX = Math.max(46, Math.min(900 - 46, drawingEngine.vistaALogicoX(x)));
-            double posY = Math.max(46, Math.min(620 - 46, drawingEngine.vistaALogicoY(y)));
+            double posX = Math.max(MARGEN_CANVAS, Math.min(ANCHO_CANVAS - MARGEN_CANVAS, drawingEngine.vistaALogicoX(x)));
+            double posY = Math.max(MARGEN_CANVAS, Math.min(ALTO_CANVAS - MARGEN_CANVAS, drawingEngine.vistaALogicoY(y)));
             
             controller.agregarEstado(nombre, esInicial, esAceptacion, posX, posY);
             mostrarInfo("Estado creado exitosamente.");
@@ -199,6 +218,7 @@ public class AutomataViewInteraction {
             mostrarError(ex.getMessage());
         }
     }
+
 
     public void mostrarError(String mensaje) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -233,12 +253,6 @@ public class AutomataViewInteraction {
         estadoEnCreacionAceptacion = false;
     }
 
-    // --- MÉTODOS PRIVADOS DE UTILIDAD ---
-
-    /**
-     * Centraliza el cálculo matemático para encontrar si un click corresponde a un estado.
-     * Evita la duplicidad de código entre seleccionarEstadoEnCanvas y encontrarEstadoEnPosicion.
-     */
     private Estado buscarEstadoCercano(double x, double y) {
         Automata automata = controller.getAutomataActual();
         Estado encontrado = null;
@@ -251,7 +265,7 @@ public class AutomataViewInteraction {
             double ey = estado.getY() * escala;
             double distancia = Math.hypot(ex - x, ey - y);
             
-            if (distancia <= radio + 8 && distancia < mejor) {
+            if (distancia <= radio + TOLERANCIA_CLICK && distancia < mejor) {
                 encontrado = estado;
                 mejor = distancia;
             }
@@ -259,10 +273,6 @@ public class AutomataViewInteraction {
         return encontrado;
     }
 
-    /**
-     * Fuerza a las alertas de JavaFX a calcular su tamaño preferido, 
-     * evitando que textos largos se corten con "..."
-     */
     private void configurarAlerta(Alert alert) {
         alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
     }
