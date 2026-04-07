@@ -143,22 +143,61 @@ public class AutomataViewUIBuilder {
             VBox[] panelConfiguracionOut,
             VBox[] panelPruebasOut) {
 
+        StackPane stackPane = crearContenedorDetalles();
+        VBox panelConfiguracion = construirPanelConfiguracion(tipoCombo, alfabetoField, onCrearAutomata);
+        VBox panelPruebas = construirPanelPruebas(
+                palabrasArea,
+                onEvaluarTodas,
+                onLimpiar,
+                onEpsilon,
+                resultadosLoteList,
+                btnSiguientePaso,
+                btnReproducir,
+                onSiguientePaso,
+                onReproducir,
+                estadoProcesoLabel
+        );
+
+        stackPane.getChildren().addAll(panelConfiguracion, panelPruebas);
+        publicarPanelesSalida(panelConfiguracionOut, panelPruebasOut, panelConfiguracion, panelPruebas);
+        return stackPane;
+    }
+
+    private StackPane crearContenedorDetalles() {
         StackPane stackPane = new StackPane();
         stackPane.setPrefWidth(300);
         stackPane.setMinWidth(250);
         stackPane.setMaxWidth(350);
+        return stackPane;
+    }
 
-        // PANEL 1: Configuración
-        VBox panelConfiguracion = new VBox(8);
-        panelConfiguracion.getStyleClass().add("details-panel");
-        panelConfiguracion.setPrefWidth(300);
-        panelConfiguracion.setMinWidth(250);
-        panelConfiguracion.setMaxWidth(350);
+    private VBox crearPanelBaseDetalles(boolean visible) {
+        VBox panel = new VBox(8);
+        panel.getStyleClass().add("details-panel");
+        panel.setPrefWidth(300);
+        panel.setMinWidth(250);
+        panel.setMaxWidth(350);
+        panel.setVisible(visible);
+        panel.setManaged(visible);
+        return panel;
+    }
 
+    private VBox construirPanelConfiguracion(ComboBox<TipoAutomata> tipoCombo, TextField alfabetoField, Runnable onCrearAutomata) {
+        VBox panelConfiguracion = crearPanelBaseDetalles(true);
         Label titulo = new Label("Configuración");
         titulo.getStyleClass().add("section-title");
 
+        ScrollPane scrollDetalles = new ScrollPane(crearSeccionDefinicion(tipoCombo, alfabetoField, onCrearAutomata));
+        scrollDetalles.setFitToWidth(true);
+        VBox.setVgrow(scrollDetalles, Priority.ALWAYS);
+
+        panelConfiguracion.getChildren().addAll(titulo, scrollDetalles);
+        return panelConfiguracion;
+    }
+
+    private VBox crearSeccionDefinicion(ComboBox<TipoAutomata> tipoCombo, TextField alfabetoField, Runnable onCrearAutomata) {
         VBox seccionDefinicion = new VBox(6);
+
         Label labelTipo = new Label("Tipo de Autómata:");
         labelTipo.getStyleClass().add("field-label");
         tipoCombo.getItems().addAll(TipoAutomata.DFA, TipoAutomata.NFA);
@@ -176,35 +215,59 @@ public class AutomataViewUIBuilder {
         btnCrearAutomata.setOnAction(e -> onCrearAutomata.run());
 
         seccionDefinicion.getChildren().addAll(
-            labelTipo, tipoCombo,
-            labelAlfabeto, alfabetoField,
-            new Separator(Orientation.HORIZONTAL),
-            btnCrearAutomata
+                labelTipo, tipoCombo,
+                labelAlfabeto, alfabetoField,
+                new Separator(Orientation.HORIZONTAL),
+                btnCrearAutomata
         );
+        return seccionDefinicion;
+    }
 
-        ScrollPane scrollDetalles = new ScrollPane(seccionDefinicion);
-        scrollDetalles.setFitToWidth(true);
-        VBox.setVgrow(scrollDetalles, Priority.ALWAYS);
-
-        panelConfiguracion.getChildren().addAll(titulo, scrollDetalles);
-
-        // PANEL 2: Pruebas
-        VBox panelPruebas = new VBox(8);
-        panelPruebas.getStyleClass().add("details-panel");
-        panelPruebas.setPrefWidth(300);
-        panelPruebas.setMinWidth(250);
-        panelPruebas.setMaxWidth(350);
-        panelPruebas.setVisible(false);
-        panelPruebas.setManaged(false);
-
+    private VBox construirPanelPruebas(
+            TextArea palabrasArea,
+            Runnable onEvaluarTodas,
+            Runnable onLimpiar,
+            Runnable onEpsilon,
+            ListView<?> resultadosLoteList,
+            Button btnSiguientePaso,
+            Button btnReproducir,
+            Runnable onSiguientePaso,
+            Runnable onReproducir,
+            Label estadoProcesoLabel) {
+        VBox panelPruebas = crearPanelBaseDetalles(false);
         Label tituloPruebas = new Label("Palabras de Prueba");
         tituloPruebas.getStyleClass().add("section-title");
 
+        configurarEntradaPalabras(palabrasArea);
+        HBox botonesPruebas = crearBotonesPruebas(onEvaluarTodas, onLimpiar, onEpsilon);
+        Label resultadosLabel = new Label("Resultados del lote:");
+        resultadosLabel.getStyleClass().add("field-label");
+
+        configurarResultadosLote(resultadosLoteList);
+        HBox botonesSimulacion = configurarBotonesSimulacion(btnSiguientePaso, btnReproducir, onSiguientePaso, onReproducir);
+        configurarEstadoProceso(estadoProcesoLabel);
+
+        panelPruebas.getChildren().addAll(
+                tituloPruebas,
+                palabrasArea,
+                botonesPruebas,
+                new Separator(Orientation.HORIZONTAL),
+                resultadosLabel,
+                resultadosLoteList,
+                botonesSimulacion,
+                estadoProcesoLabel
+        );
+        return panelPruebas;
+    }
+
+    private void configurarEntradaPalabras(TextArea palabrasArea) {
         palabrasArea.setPromptText("Ingrese una palabra por línea" + System.lineSeparator() +
                 "Use ε/lambda para palabra vacía" + System.lineSeparator());
         palabrasArea.setWrapText(true);
         palabrasArea.setPrefRowCount(8);
+    }
 
+    private HBox crearBotonesPruebas(Runnable onEvaluarTodas, Runnable onLimpiar, Runnable onEpsilon) {
         Button btnEvaluarTodas = new Button("Evaluar Todas");
         btnEvaluarTodas.getStyleClass().add("btn-primary");
         btnEvaluarTodas.setMaxWidth(Double.MAX_VALUE);
@@ -224,13 +287,20 @@ public class AutomataViewUIBuilder {
         botonesPruebas.setStyle("-fx-spacing: 8;");
         HBox.setHgrow(btnEvaluarTodas, Priority.ALWAYS);
         HBox.setHgrow(btnLimpiarText, Priority.ALWAYS);
+        return botonesPruebas;
+    }
 
-        Label resultadosLabel = new Label("Resultados del lote:");
-        resultadosLabel.getStyleClass().add("field-label");
-
+    private void configurarResultadosLote(ListView<?> resultadosLoteList) {
         resultadosLoteList.setPrefHeight(230);
         resultadosLoteList.setPlaceholder(new Label("Evalúe cadenas para ver resultados"));
+        VBox.setVgrow(resultadosLoteList, Priority.ALWAYS);
+    }
 
+    private HBox configurarBotonesSimulacion(
+            Button btnSiguientePaso,
+            Button btnReproducir,
+            Runnable onSiguientePaso,
+            Runnable onReproducir) {
         btnSiguientePaso.getStyleClass().add("btn-secondary");
         btnSiguientePaso.setDisable(true);
         btnSiguientePaso.setMaxWidth(Double.MAX_VALUE);
@@ -246,34 +316,26 @@ public class AutomataViewUIBuilder {
         botonesSimulacion.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(btnSiguientePaso, Priority.ALWAYS);
         HBox.setHgrow(btnReproducir, Priority.ALWAYS);
+        return botonesSimulacion;
+    }
 
-        VBox.setVgrow(resultadosLoteList, Priority.ALWAYS);
-
+    private void configurarEstadoProceso(Label estadoProcesoLabel) {
         estadoProcesoLabel.setMaxWidth(Double.MAX_VALUE);
         estadoProcesoLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748B; -fx-wrap-text: true;");
         estadoProcesoLabel.getStyleClass().add("status-chip");
+    }
 
-        panelPruebas.getChildren().addAll(
-                tituloPruebas,
-                palabrasArea,
-                botonesPruebas,
-                new Separator(Orientation.HORIZONTAL),
-                resultadosLabel,
-                resultadosLoteList,
-                botonesSimulacion,
-                estadoProcesoLabel
-        );
-
-        stackPane.getChildren().addAll(panelConfiguracion, panelPruebas);
-        
+    private void publicarPanelesSalida(
+            VBox[] panelConfiguracionOut,
+            VBox[] panelPruebasOut,
+            VBox panelConfiguracion,
+            VBox panelPruebas) {
         if (panelConfiguracionOut != null && panelConfiguracionOut.length > 0) {
             panelConfiguracionOut[0] = panelConfiguracion;
         }
         if (panelPruebasOut != null && panelPruebasOut.length > 0) {
             panelPruebasOut[0] = panelPruebas;
         }
-
-        return stackPane;
     }
 
     public void mostrarPanelConfiguracion(VBox panelConfiguracion, VBox panelPruebas) {

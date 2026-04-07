@@ -1,48 +1,31 @@
-# Simulador y Analizador de Automatas Finitos (DFA/NFA)
+# Manual de Usuario: Simulador de Autómatas
 
-Proyecto Java + JavaFX con arquitectura MVC para crear, visualizar, guardar, cargar y evaluar automatas finitos deterministas y no deterministas.
+Esta herramienta permite diseñar, evaluar y visualizar el comportamiento de Autómatas Finitos Deterministas (DFA) y No Deterministas (NFA).
 
-## Estructura
+## 1. Cómo ingresar un Autómata (Manualmente)
 
-- `src/main/java/co/edu/uptc/simuladorautomatas/model`: clases `Estado`, `Transicion`, `Automata`, `TipoAutomata`
-- `src/main/java/co/edu/uptc/simuladorautomatas/logic`: validacion, evaluacion de cadenas y trazabilidad
-- `src/main/java/co/edu/uptc/simuladorautomatas/persistence`: serializacion JSON con Gson
-- `src/main/java/co/edu/uptc/simuladorautomatas/ui`: interfaz JavaFX
-- `src/main/java/co/edu/uptc/simuladorautomatas/controller`: conexion UI - logica
-- `src/main/resources/test-data`: 2 ejemplos DFA en JSON
+Para crear un autómata desde cero en la interfaz, diríjase al panel de **Configuración** (lado izquierdo de la pantalla) y siga estos pasos:
 
-## Requisitos
+1. **Seleccione el Tipo:** En el menú desplegable "Tipo de Autómata", elija entre `DFA` (Determinista) o `NFA` (No Determinista).
+2. **Defina el Alfabeto:** En el campo de texto "Alfabeto", ingrese los símbolos válidos separados por comas (por ejemplo: `a,b,c` o `0,1`).
+3. **Inicie la Creación:** Haga clic en el botón azul **"Crear Autómata"**.
 
-- Java 17
-- Maven 3.9+
 
-## Ejecutar
+> **Nota:** *(Si tu programa requiere dibujar o llenar una tabla de transiciones después de esto, puedes agregar aquí una breve instrucción extra sobre cómo hacerlo).*
 
-```powershell
-mvn clean javafx:run
-```
+## 📂 2. Cómo cargar archivos (Autómatas o Pruebas)
 
-## Probar
+Si ya tiene un autómata guardado o un lote de pruebas en un archivo, puede cargarlos directamente sin escribirlos a mano:
 
-```powershell
-mvn test
-```
+1. Diríjase a la barra superior y seleccione la opción **Archivo > Cargar...**
+2. Se abrirá el explorador de archivos de su computadora. Busque y seleccione su archivo de configuración (formatos soportados: `.txt`, `.json`, etc.).
+3. Haga clic en **"Abrir"**. El sistema leerá el documento y cargará el autómata o las palabras de prueba automáticamente en los paneles correspondientes.
 
-## Casos DFA incluidos
+## 🧪 3. Cómo evaluar palabras
 
-- `src/main/resources/test-data/dfa_binario_par_0.json`
-  - Acepta: `1010`, `11`, `` (cadena vacia)
-  - Rechaza: `100`, `0`
-- `src/main/resources/test-data/dfa_termina_ab.json`
-  - Acepta: `ab`, `aaab`, `babab`
-  - Rechaza: `aba`, `bbb`, `a`
+Una vez ingresado o cargado el autómata, el panel de **Pruebas** se activará:
 
-## Flujo de uso UI
-
-1. Definir tipo (DFA/NFA) y alfabeto.
-2. Crear estados con boton y click en el panel izquierdo.
-3. Marcar inicial/aceptacion y crear transiciones.
-4. Evaluar hasta 10 cadenas (una por linea).
-5. Generar traza para una cadena especifica.
-6. Guardar o cargar automata en JSON.
-
+1. **Ingreso por lote:** Escriba las cadenas que desea probar en el área de texto (una palabra por línea). Si desea evaluar la palabra vacía, utilice el botón **"ε"**.
+2. **Evaluación:** Haga clic en **"Evaluar Todas"**.
+3. **Resultados:** En la lista inferior aparecerá cada palabra evaluada y su estado (Aceptada / Rechazada).
+4. **Simulación:** Seleccione un resultado de la lista y use los botones **"Siguiente Paso"** o **"Reproducir"** para ver cómo el autómata procesa la cadena símbolo por símbolo.
