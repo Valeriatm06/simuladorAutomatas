@@ -6,6 +6,8 @@ import co.edu.uptc.simuladorautomatas.model.SimbolosAutomata;
 import co.edu.uptc.simuladorautomatas.model.Transicion;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
+import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -15,6 +17,7 @@ import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
+import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -72,6 +75,88 @@ public class AutomataViewDrawing {
 
         // 2. Dibujamos las transiciones en la capa inferior
         redibujarTransiciones();
+        
+        // 3. Agregamos el ícono de información en la esquina superior
+        agregarIconoInformacion(automata);
+    }
+
+    /**
+     * Agrega un ícono de información en la esquina superior del panel
+     */
+    private void agregarIconoInformacion(Automata automata) {
+        Label iconoInfo = new Label("ⓘ");
+        iconoInfo.setStyle("-fx-font-size: 18px; -fx-text-fill: #2563EB; -fx-cursor: hand;");
+        iconoInfo.setLayoutX(10);
+        iconoInfo.setLayoutY(10);
+        
+        String quintupla = generarQuintupla(automata);
+        Tooltip tooltip = new Tooltip(quintupla);
+        tooltip.setShowDelay(Duration.millis(200));
+        tooltip.setHideDelay(Duration.millis(100));
+        tooltip.setWrapText(true);
+        tooltip.setMaxWidth(400);
+        tooltip.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 11px;");
+        Tooltip.install(iconoInfo, tooltip);
+        
+        capaEstados.getChildren().add(iconoInfo);
+    }
+
+    /**
+     * Genera la quintupla del autómata en formato legible
+     */
+    private String generarQuintupla(Automata automata) {
+        StringBuilder sb = new StringBuilder();
+        
+        sb.append("Quintupla del Autómata\n");
+        sb.append("═════════════════════════\n\n");
+        
+        // Tipo de autómata
+        sb.append("Tipo: ").append(automata.getTipo().name()).append("\n\n");
+        
+        // Alfabeto
+        sb.append("Σ (Alfabeto):\n");
+        List<String> alfabeto = automata.getAlfabeto();
+        if (alfabeto.isEmpty()) {
+            sb.append("  (vacío)\n");
+        } else {
+            sb.append("  {").append(String.join(", ", alfabeto)).append("}\n");
+        }
+        sb.append("\n");
+        
+        // Conjunto de estados
+        sb.append("Q (Estados):\n");
+        List<Estado> estados = automata.getEstados();
+        if (estados.isEmpty()) {
+            sb.append("  (vacío)\n");
+        } else {
+            sb.append("  {").append(String.join(", ", 
+                    estados.stream().map(Estado::getNombre).toList())).append("}\n");
+        }
+        sb.append("\n");
+        
+        // Estado inicial
+        sb.append("q₀ (Estado Inicial):\n");
+        Estado inicial = automata.getEstadoInicial();
+        if (inicial != null) {
+            sb.append("  ").append(inicial.getNombre()).append("\n");
+        } else {
+            sb.append("  (no definido)\n");
+        }
+        sb.append("\n");
+        
+        // Estados de aceptación
+        sb.append("F (Estados de Aceptación):\n");
+        List<Estado> aceptacion = estados.stream()
+                .filter(Estado::isEsAceptacion)
+                .toList();
+        if (aceptacion.isEmpty()) {
+            sb.append("  (ninguno)\n");
+        } else {
+            sb.append("  {").append(String.join(", ", 
+                    aceptacion.stream().map(Estado::getNombre).toList())).append("}\n");
+        }
+        
+        return sb.toString();
     }
 
     /**
