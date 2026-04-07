@@ -122,6 +122,7 @@ public class AutomataEvaluator {
         return new EvaluacionCadenaResultado(cadena, aceptada, incluirTraza ? traza.toString() : "", estadosIniciales, pasos);
     }
 
+    //además de encontrar los siguientes, también indica un número único a cada camino
     private List<TransicionIndividual> moverNfaConDetalles(Automata automata, Set<Estado> actuales, String valor) {
         List<TransicionIndividual> transiciones = new ArrayList<>();
         int numeroRuta = 0;
