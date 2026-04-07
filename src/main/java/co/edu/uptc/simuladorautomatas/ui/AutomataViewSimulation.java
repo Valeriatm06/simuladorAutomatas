@@ -3,6 +3,7 @@ package co.edu.uptc.simuladorautomatas.ui;
 import co.edu.uptc.simuladorautomatas.controller.AutomataController;
 import co.edu.uptc.simuladorautomatas.logic.EvaluacionCadenaResultado;
 import co.edu.uptc.simuladorautomatas.logic.PasoEvaluacion;
+import co.edu.uptc.simuladorautomatas.logic.TransicionIndividual;
 import javafx.animation.PauseTransition;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
@@ -178,11 +179,11 @@ public class AutomataViewSimulation {
         transicionesResaltadasRuta.clear();
         
         // Si hay transiciones individuales, usarlas; si no, usar el comportamiento anterior
-        List<PasoEvaluacion.TransicionIndividual> transiciones = paso.getTransiciones();
+        List<TransicionIndividual> transiciones = paso.getTransiciones();
         
         if (transiciones != null && !transiciones.isEmpty()) {
             // Hay información de rutas detalladas
-            for (PasoEvaluacion.TransicionIndividual transicion : transiciones) {
+            for (TransicionIndividual transicion : transiciones) {
                 String clave = transicion.getEstadoOrigen() + "->" + transicion.getEstadoDestino();
                 transicionesResaltadasRuta.put(clave, transicion.getNumeroRuta());
             }

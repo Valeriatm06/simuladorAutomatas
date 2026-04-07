@@ -1,6 +1,9 @@
 package co.edu.uptc.simuladorautomatas.model;
 
 import java.util.Objects;
+/**
+ * Clase que representa un estado, junto con sus componentes
+ */
 
 public class Estado {
     private String nombre;

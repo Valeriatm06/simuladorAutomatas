@@ -1,6 +1,11 @@
 package co.edu.uptc.simuladorautomatas.model;
 
 import java.util.Locale;
+/**
+ * Contiene las constantes con la palabra vacía,
+ * la normalización de los simbolos de entrada y transición, y
+ * valicadión de si un símbolo o entrada es epsilon
+ */
 
 public final class SimbolosAutomata {
     public static final String EPSILON = "\u03b5";

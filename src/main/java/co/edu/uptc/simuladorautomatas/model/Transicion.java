@@ -1,5 +1,11 @@
 package co.edu.uptc.simuladorautomatas.model;
 
+/**
+ * Clase que presenta una transición, o una "flecha" y de que
+ * se compone
+ */
+
+
 public class Transicion {
     private Estado estadoOrigen;
     private String simbolo;

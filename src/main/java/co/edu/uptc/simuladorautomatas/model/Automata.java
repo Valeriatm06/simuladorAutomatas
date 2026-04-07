@@ -5,6 +5,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+/**
+ * Un automata constituido de su conjunto de estados,
+ * su alfabeto, transiciones y tipo.
+ */
 
 public class Automata {
     private final List<Estado> estados;
@@ -93,6 +97,7 @@ public class Automata {
         estados.forEach(e -> e.setEsInicial(false));
     }
 
+
     private void validarTransicion(Transicion transicion) {
         Objects.requireNonNull(transicion, "La transicion no puede ser nula");
         String simboloNormalizado = prepararSimbolo(transicion);
@@ -105,7 +110,7 @@ public class Automata {
         validarDeterminismoDfa(transicion, simboloNormalizado);
     }
 
-
+    //Normalizar un símbolo para evitar incongruencias
     private String prepararSimbolo(Transicion transicion) {
         String simboloNormalizado = SimbolosAutomata.normalizarSimboloTransicion(transicion.getSimbolo());
         transicion.setSimbolo(simboloNormalizado);
@@ -130,6 +135,7 @@ public class Automata {
         }
     }
 
+    //Un ADF no tiene transiciones epsilon y tampoco transiciones ambiguas
     private void validarDeterminismoDfa(Transicion transicion, String simboloNormalizado) {
         if (tipo == TipoAutomata.DFA) {
             boolean existeAmbiguedad = transiciones.stream().anyMatch(t ->

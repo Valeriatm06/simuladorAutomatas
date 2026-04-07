@@ -7,13 +7,13 @@ co\edu\uptc\simuladorautomatas\Dto\AutomataDto.class
 co\edu\uptc\simuladorautomatas\logic\AutomataValidator.class
 co\edu\uptc\simuladorautomatas\Dto\TransicionDto.class
 co\edu\uptc\simuladorautomatas\Dto\EstadoDto.class
+co\edu\uptc\simuladorautomatas\logic\TransicionIndividual.class
 co\edu\uptc\simuladorautomatas\ui\AutomataView.class
 co\edu\uptc\simuladorautomatas\logic\PasoEvaluacion.class
 co\edu\uptc\simuladorautomatas\ui\AutomataView$1.class
 co\edu\uptc\simuladorautomatas\ui\AutomataViewSimulation.class
 co\edu\uptc\simuladorautomatas\ui\AutomataViewFileOps.class
 co\edu\uptc\simuladorautomatas\logic\AutomataEvaluator.class
-co\edu\uptc\simuladorautomatas\logic\PasoEvaluacion$TransicionIndividual.class
 co\edu\uptc\simuladorautomatas\ui\AutomataViewDrawing$AristaKey.class
 co\edu\uptc\simuladorautomatas\model\TipoAutomata.class
 co\edu\uptc\simuladorautomatas\ui\VentanaFuncionTransicion.class

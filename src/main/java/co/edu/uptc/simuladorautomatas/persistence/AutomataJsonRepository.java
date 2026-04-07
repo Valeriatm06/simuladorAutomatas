@@ -20,13 +20,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Persistencia de autómatas en formato JSON.
+ * Utiliza el DTOs para transformar objetos (automata) en un formato plano (JSON),
+ * y luego reconstruir sin crear clones ni bucles infinitos.
+ */
+
 public class AutomataJsonRepository {
     private final Gson gson;
 
     public AutomataJsonRepository() {
+        // PrettyPrinting facilita la lectura y depuración manual del archivo JSON generado
         this.gson = new GsonBuilder().setPrettyPrinting().create();
     }
 
+    //Serializa y guarda un autómata en disco.
     public void guardar(Path archivo, Automata automata) throws IOException {
         AutomataDto dto = toDto(automata);
         try (Writer writer = Files.newBufferedWriter(archivo)) {
@@ -34,6 +42,7 @@ public class AutomataJsonRepository {
         }
     }
 
+    //Carga y reconstruye un autómata desde un archivo en disco.
     public Automata cargar(Path archivo) throws IOException {
         try (Reader reader = Files.newBufferedReader(archivo)) {
             AutomataDto dto = gson.fromJson(reader, AutomataDto.class);
@@ -43,6 +52,8 @@ public class AutomataJsonRepository {
             return fromDto(dto);
         }
     }
+
+    // --- Métodos de Mapeo ---
 
     private AutomataDto toDto(Automata automata) {
         AutomataDto dto = new AutomataDto();
@@ -57,6 +68,7 @@ public class AutomataJsonRepository {
             estadoDto.y = e.getY();
             return estadoDto;
         }).toList();
+        // Convertir las referencias directas (objetos) en referencias por nombre (Strings)
         dto.transiciones = automata.getTransiciones().stream().map(t -> {
             TransicionDto transicionDto = new TransicionDto();
             transicionDto.origen = t.getEstadoOrigen().getNombre();
@@ -67,10 +79,11 @@ public class AutomataJsonRepository {
         return dto;
     }
 
+
     private Automata fromDto(AutomataDto dto) {
         Automata automata = new Automata(TipoAutomata.valueOf(dto.tipo));
         automata.setAlfabeto(dto.alfabeto == null ? List.of() : dto.alfabeto);
-
+        //Reconstruir estados y guardarlos en un map
         Map<String, Estado> estadosPorNombre = new HashMap<>();
         if (dto.estados != null) {
             for (EstadoDto estadoDto : dto.estados) {
@@ -79,7 +92,7 @@ public class AutomataJsonRepository {
                 estadosPorNombre.put(estado.getNombre(), estado);
             }
         }
-
+        //Reconstruir transiciones enlazando con  el map
         if (dto.transiciones != null) {
             for (TransicionDto transicionDto : dto.transiciones) {
                 Estado origen = estadosPorNombre.get(transicionDto.origen);
