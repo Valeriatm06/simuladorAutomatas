@@ -9,6 +9,11 @@ import co.edu.uptc.simuladorautomatas.model.Transicion;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Validador de reglas de negocio para los autómatas.
+ * Garantiza que un autómata cumpla con las restricciones teóricas (matemáticas)
+ * de su tipo (DFA o NFA) antes de intentar evaluarlo, previniendo errores en tiempo de ejecución.
+ */
 public class AutomataValidator {
 
     public void validar(Automata automata) {

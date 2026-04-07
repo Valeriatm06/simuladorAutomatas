@@ -14,6 +14,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Encargado de procesar cadenas de entrada y
+ * calcular el recorrido y veredicto de aceptación basándose en las reglas teóricas
+ * del autómata (DFA o NFA).
+ */
 public class AutomataEvaluator {
 
     private final int LIMITE_LOTE = 10;
@@ -203,11 +208,7 @@ public class AutomataEvaluator {
         return estados.stream().map(Estado::getNombre).collect(Collectors.joining(","));
     }
 
-    /**
-     * Genera la función de transición extendida (δ*) para visualizar la evaluación
-     * @param resultado Resultado de la evaluación de una cadena
-     * @return Representación textual de la función de transición extendida
-     */
+    //Genera la función de transición extendida (δ*) para visualizar la evaluación
     public String generarFuncionTransicionExtendida(EvaluacionCadenaResultado resultado) {
         if (resultado == null) {
             return "";

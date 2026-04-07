@@ -14,6 +14,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Controlador principal del simulador.
+ * Actúa como el puente centralizado entre la Interfaz Gráfica (Vista) y
+ * la lógica de negocio (Modelos, Motores de Evaluación y Persistencia).
+ */
 public class AutomataController {
     private final AutomataEvaluator evaluator;
     private final AutomataValidator validator;

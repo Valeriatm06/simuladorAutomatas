@@ -3,8 +3,12 @@ package co.edu.uptc.simuladorautomatas.logic;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
+/**
+ * Representa una momento exacto en el tiempo durante la simulación de una cadena.
+ * Guarda el símbolo consumido y el conjunto de estados en los que se encontraba el autómata antes
+ * y después de consumir dicho símbolo.
+ */
 public class PasoEvaluacion {
     private final String simbolo;
     private final List<String> estadosOrigen;

@@ -4,6 +4,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+
+/**
+ * Objeto (Inmutable) que encapsula el veredicto final
+ * y todo el historial de pasos tras evaluar una cadena en un autómata.
+ * Al ser inmutable, garantiza que la interfaz gráfica no pueda alterar
+ * accidentalmente los resultados del motor matemático.
+ */
 public class EvaluacionCadenaResultado {
     private final String cadena;
     private final boolean aceptada;
