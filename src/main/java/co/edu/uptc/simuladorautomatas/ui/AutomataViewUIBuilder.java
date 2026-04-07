@@ -137,8 +137,10 @@ public class AutomataViewUIBuilder {
             ListView<?> resultadosLoteList,
             Button btnSiguientePaso,
             Button btnReproducir,
+            Button btnVerFuncion,
             Runnable onSiguientePaso,
             Runnable onReproducir,
+            Runnable onVerFuncion,
             Label estadoProcesoLabel,
             VBox[] panelConfiguracionOut,
             VBox[] panelPruebasOut) {
@@ -153,8 +155,10 @@ public class AutomataViewUIBuilder {
                 resultadosLoteList,
                 btnSiguientePaso,
                 btnReproducir,
+                btnVerFuncion,
                 onSiguientePaso,
                 onReproducir,
+                onVerFuncion,
                 estadoProcesoLabel
         );
 
@@ -231,8 +235,10 @@ public class AutomataViewUIBuilder {
             ListView<?> resultadosLoteList,
             Button btnSiguientePaso,
             Button btnReproducir,
+            Button btnVerFuncion,
             Runnable onSiguientePaso,
             Runnable onReproducir,
+            Runnable onVerFuncion,
             Label estadoProcesoLabel) {
         VBox panelPruebas = crearPanelBaseDetalles(false);
         Label tituloPruebas = new Label("Palabras de Prueba");
@@ -244,7 +250,7 @@ public class AutomataViewUIBuilder {
         resultadosLabel.getStyleClass().add("field-label");
 
         configurarResultadosLote(resultadosLoteList);
-        HBox botonesSimulacion = configurarBotonesSimulacion(btnSiguientePaso, btnReproducir, onSiguientePaso, onReproducir);
+        HBox botonesSimulacion = configurarBotonesSimulacion(btnSiguientePaso, btnReproducir, btnVerFuncion, onSiguientePaso, onReproducir, onVerFuncion);
         configurarEstadoProceso(estadoProcesoLabel);
 
         panelPruebas.getChildren().addAll(
@@ -299,8 +305,10 @@ public class AutomataViewUIBuilder {
     private HBox configurarBotonesSimulacion(
             Button btnSiguientePaso,
             Button btnReproducir,
+            Button btnVerFuncion,
             Runnable onSiguientePaso,
-            Runnable onReproducir) {
+            Runnable onReproducir,
+            Runnable onVerFuncion) {
         btnSiguientePaso.getStyleClass().add("btn-secondary");
         btnSiguientePaso.setDisable(true);
         btnSiguientePaso.setMaxWidth(Double.MAX_VALUE);
@@ -311,11 +319,19 @@ public class AutomataViewUIBuilder {
         btnReproducir.setMaxWidth(Double.MAX_VALUE);
         btnReproducir.setOnAction(e -> onReproducir.run());
 
-        HBox botonesSimulacion = new HBox(8, btnSiguientePaso, btnReproducir);
-        botonesSimulacion.setStyle("-fx-spacing: 8;");
+        btnVerFuncion.getStyleClass().add("btn-action");
+        btnVerFuncion.setDisable(true);
+        btnVerFuncion.setMaxWidth(Double.MAX_VALUE);
+        btnVerFuncion.setTooltip(new Tooltip("Mostrar δ* (función de transición extendida)"));
+        btnVerFuncion.setOnAction(e -> onVerFuncion.run());
+
+        VBox simulacionBox = new VBox(8);
+        simulacionBox.getChildren().addAll(btnSiguientePaso, btnReproducir, btnVerFuncion);
+
+        HBox.setHgrow(simulacionBox, Priority.ALWAYS);
+        HBox botonesSimulacion = new HBox(simulacionBox);
+        botonesSimulacion.setStyle("-fx-spacing: 0;");
         botonesSimulacion.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(btnSiguientePaso, Priority.ALWAYS);
-        HBox.setHgrow(btnReproducir, Priority.ALWAYS);
         return botonesSimulacion;
     }
 

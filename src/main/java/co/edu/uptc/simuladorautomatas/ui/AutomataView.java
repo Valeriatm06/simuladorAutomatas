@@ -45,6 +45,7 @@ public class AutomataView {
     private ListView<EvaluacionCadenaResultado> resultadosLoteList;
     private Button btnSiguientePaso;
     private Button btnReproducir;
+    private Button btnVerFuncion;
     private ComboBox<TipoAutomata> tipoCombo;
     private VBox panelConfiguracion;
     private VBox panelPruebas;
@@ -138,8 +139,8 @@ public class AutomataView {
                 tipoCombo, alfabetoField, this::crearNuevoAutomata,
                 palabrasArea, this::evaluarPalabras,
                 () -> palabrasArea.clear(), this::agregarEpsilon,
-                resultadosLoteList, btnSiguientePaso, btnReproducir,
-                this::avanzarSimulacionManual, this::reproducirDesdeInicio,
+                resultadosLoteList, btnSiguientePaso, btnReproducir, btnVerFuncion,
+                this::avanzarSimulacionManual, this::reproducirDesdeInicio, this::mostrarFuncionTransicion,
                 estadoProcesoLabel, panelConfigOut, panelPruebasOut
         );
 
@@ -164,6 +165,7 @@ public class AutomataView {
         resultadosLoteList = new ListView<>();
         btnSiguientePaso = new Button("Siguiente paso");
         btnReproducir = new Button("Reproducir");
+        btnVerFuncion = new Button("Ver δ*");
         estadoProcesoLabel = new Label("Seleccione una cadena de los resultados");
     }
 
@@ -415,6 +417,7 @@ public class AutomataView {
         simulationManager.iniciarSimulacion(seleccionado);
         btnSiguientePaso.setDisable(false);
         btnReproducir.setDisable(false);
+        btnVerFuncion.setDisable(false);
         actualizarEstadoPasoAPaso();
         redibujar();
     }
@@ -429,6 +432,18 @@ public class AutomataView {
         simulationManager.reproducirDesdeInicio();
         actualizarEstadoPasoAPaso();
         redibujar();
+    }
+
+    private void mostrarFuncionTransicion() {
+        EvaluacionCadenaResultado simulacion = simulationManager.getSimulacionActual();
+        if (simulacion == null) {
+            return;
+        }
+
+        co.edu.uptc.simuladorautomatas.logic.AutomataEvaluator evaluator = 
+                new co.edu.uptc.simuladorautomatas.logic.AutomataEvaluator();
+        String funcionExtendida = evaluator.generarFuncionTransicionExtendida(simulacion);
+        VentanaFuncionTransicion.mostrar(funcionExtendida);
     }
 
     private void actualizarEstadoPasoAPaso() {
@@ -587,6 +602,7 @@ public class AutomataView {
         simulationManager.detenerSimulacion();
         btnSiguientePaso.setDisable(true);
         btnReproducir.setDisable(true);
+        btnVerFuncion.setDisable(true);
         uiBuilder.mostrarPanelConfiguracion(panelConfiguracion, panelPruebas);
         reiniciarStepperVisual();
         redibujar();

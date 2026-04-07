@@ -203,4 +203,53 @@ public class AutomataEvaluator {
     private String formatoConjunto(Set<Estado> estados) {
         return estados.stream().map(Estado::getNombre).collect(Collectors.joining(","));
     }
+
+    /**
+     * Genera la función de transición extendida (δ*) para visualizar la evaluación
+     * @param resultado Resultado de la evaluación de una cadena
+     * @return Representación textual de la función de transición extendida
+     */
+    public String generarFuncionTransicionExtendida(EvaluacionCadenaResultado resultado) {
+        if (resultado == null) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        String cadena = resultado.getCadena().isEmpty() ? "ε" : resultado.getCadena();
+        sb.append("═══════════════════════════════════════\n");
+        sb.append("Función de Transición Extendida δ*\n");
+        sb.append("═══════════════════════════════════════\n\n");
+        sb.append("Cadena: \"").append(cadena).append("\"\n");
+        sb.append("Resultado: ").append(resultado.getEstadoTexto()).append("\n\n");
+
+        // Estado inicial
+        List<String> estadosIniciales = resultado.getEstadosIniciales();
+        String estadosInicStr = estadosIniciales.isEmpty() ? "∅" : "{" + String.join(",", estadosIniciales) + "}";
+        sb.append("δ*(").append(estadosInicStr).append(", ε) = ").append(estadosInicStr).append("\n");
+
+        // Cada paso
+        List<PasoEvaluacion> pasos = resultado.getPasos();
+        for (int i = 0; i < pasos.size(); i++) {
+            PasoEvaluacion paso = pasos.get(i);
+            String simbolo = paso.getSimbolo();
+            if (SimbolosAutomata.esEpsilon(simbolo)) {
+                simbolo = "ε";
+            }
+
+            // Construir cadena hasta este paso
+            String cadenaHasta = cadena.substring(0, Math.min(i + 1, cadena.length()));
+            if (cadenaHasta.isEmpty()) {
+                cadenaHasta = "ε";
+            }
+
+            String origenStr = paso.getEstadosOrigen().isEmpty() ? "∅" : "{" + String.join(",", paso.getEstadosOrigen()) + "}";
+            String destinoStr = paso.getEstadosDestino().isEmpty() ? "∅" : "{" + String.join(",", paso.getEstadosDestino()) + "}";
+
+            sb.append("δ*(").append(origenStr).append(", ");
+            sb.append(simbolo).append(") = ").append(destinoStr).append("\n");
+        }
+
+        sb.append("\n═══════════════════════════════════════\n");
+        return sb.toString();
+    }
 }
