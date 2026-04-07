@@ -126,25 +126,6 @@ public class AutomataViewUIBuilder {
         return btn;
     }
 
-    public Pane crearPanelVisual(
-            Runnable onMouseClicked,
-            Runnable onMousePressed,
-            Runnable onMouseDragged,
-            Runnable onMouseReleased) {
-        Pane panel = new Pane();
-        panel.setMinWidth(400);
-        panel.setMinHeight(300);
-        panel.setPrefSize(Double.MAX_VALUE, Double.MAX_VALUE);
-        panel.getStyleClass().add("canvas-pane");
-
-        panel.setOnMouseClicked(event -> onMouseClicked.run());
-        panel.setOnMousePressed(event -> onMousePressed.run());
-        panel.setOnMouseDragged(event -> onMouseDragged.run());
-        panel.setOnMouseReleased(event -> onMouseReleased.run());
-
-        return panel;
-    }
-
     public StackPane crearPanelDetalles(
             ComboBox<TipoAutomata> tipoCombo,
             TextField alfabetoField,

@@ -74,7 +74,7 @@ public class AutomataViewSimulation {
             aplicarResultadoFinal(null);
             return;
         }
-        
+
         if (onRedraw != null) {
             onRedraw.run();
         }
@@ -209,24 +209,12 @@ public class AutomataViewSimulation {
         return ultimoResultadoAceptado;
     }
 
-    public boolean tieneSimulacionActiva() {
-        return simulacionActual != null;
-    }
-
-    public List<EvaluacionCadenaResultado> getResultadosUltimoLote() {
-        return resultadosUltimoLote;
-    }
-
     public EvaluacionCadenaResultado getSimulacionActual() {
         return simulacionActual;
     }
 
     public int getIndicePaso() {
         return indicePasoActual;
-    }
-
-    public boolean isReproduciendo() {
-        return reproduccionAutomaticaActiva;
     }
 
     public void limpiarResultados() {
